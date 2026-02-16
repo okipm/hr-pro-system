@@ -95,7 +95,7 @@ if menu == "Dashboard":
     st.metric("Total Employees", len(df))
 
 # =====================================================
-# EMPLOYEE DIRECTORY
+# EMPLOYEE DIRECTORY (PRO VERSION)
 # =====================================================
 
 if menu == "Employee Directory":
@@ -107,68 +107,94 @@ if menu == "Employee Directory":
 
     if st.session_state["role"] in ["Admin", "HR"]:
 
-        show_form = st.toggle("➕ Add New Employee")
+        # Add Button
+        if st.button("➕ Add Employee"):
+            st.session_state["show_add_form"] = True
 
-        if show_form:
+        # Initialize state
+        if "show_add_form" not in st.session_state:
+            st.session_state["show_add_form"] = False
 
-            with st.form("employee_form"):
+        # Expander Form
+        if st.session_state["show_add_form"]:
 
-                employee_id = st.text_input("Employee ID")
-                full_name = st.text_input("Full Name")
-                place_of_birth = st.text_input("Place of Birth")
+            with st.expander("📝 New Employee Form", expanded=True):
 
-                date_of_birth = st.date_input(
-                    "Date of Birth",
-                    min_value=date(1950, 1, 1),
-                    max_value=date.today()
-                )
+                with st.form("employee_form"):
 
-                national_id_number = st.text_input("National ID Number")
-                gender = st.selectbox("Gender", ["Male", "Female"])
+                    col1, col2 = st.columns(2)
 
-                join_date = st.date_input(
-                    "Join Date",
-                    min_value=date(2000, 1, 1),
-                    max_value=date.today()
-                )
+                    with col1:
+                        employee_id = st.text_input("Employee ID")
+                        full_name = st.text_input("Full Name")
+                        place_of_birth = st.text_input("Place of Birth")
 
-                department = st.text_input("Department")
-                position = st.text_input("Position")
-                address = st.text_area("Address")
-                bank_account_number = st.text_input("Bank Account Number")
-                marital_status = st.selectbox("Marital Status", ["Single", "Married"])
-                mothers_maiden_name = st.text_input("Mother's Maiden Name")
+                        date_of_birth = st.date_input(
+                            "Date of Birth",
+                            min_value=date(1950, 1, 1),
+                            max_value=date.today()
+                        )
 
-                daily_rate_basic = st.number_input("Daily Rate Basic", min_value=0)
-                daily_rate_transport = st.number_input("Daily Rate Transportation", min_value=0)
-                allowance_monthly = st.number_input("Allowance Monthly (Fixed)", min_value=0)
+                        national_id_number = st.text_input("National ID Number")
+                        gender = st.selectbox("Gender", ["Male", "Female"])
 
-                status = "Active"
+                        join_date = st.date_input(
+                            "Join Date",
+                            min_value=date(2000, 1, 1),
+                            max_value=date.today()
+                        )
 
-                submitted = st.form_submit_button("Save")
+                    with col2:
+                        department = st.text_input("Department")
+                        position = st.text_input("Position")
+                        address = st.text_area("Address")
+                        bank_account_number = st.text_input("Bank Account Number")
+                        marital_status = st.selectbox("Marital Status", ["Single", "Married"])
+                        mothers_maiden_name = st.text_input("Mother's Maiden Name")
 
-                if submitted:
-                    append_row(employees_ws, [
-                        employee_id,
-                        full_name,
-                        place_of_birth,
-                        str(date_of_birth),
-                        national_id_number,
-                        gender,
-                        str(join_date),
-                        department,
-                        position,
-                        address,
-                        bank_account_number,
-                        marital_status,
-                        mothers_maiden_name,
-                        daily_rate_basic,
-                        daily_rate_transport,
-                        allowance_monthly,
-                        status
-                    ])
-                    st.success("Employee Added Successfully!")
-                    st.rerun()
+                        daily_rate_basic = st.number_input("Daily Rate Basic", min_value=0)
+                        daily_rate_transport = st.number_input("Daily Rate Transportation", min_value=0)
+                        allowance_monthly = st.number_input("Allowance Monthly (Fixed)", min_value=0)
+
+                    status = "Active"
+
+                    col_save, col_cancel = st.columns(2)
+
+                    with col_save:
+                        submitted = st.form_submit_button("💾 Save Employee")
+
+                    with col_cancel:
+                        cancel = st.form_submit_button("❌ Cancel")
+
+                    if submitted:
+                        append_row(employees_ws, [
+                            employee_id,
+                            full_name,
+                            place_of_birth,
+                            str(date_of_birth),
+                            national_id_number,
+                            gender,
+                            str(join_date),
+                            department,
+                            position,
+                            address,
+                            bank_account_number,
+                            marital_status,
+                            mothers_maiden_name,
+                            daily_rate_basic,
+                            daily_rate_transport,
+                            allowance_monthly,
+                            status
+                        ])
+
+                        st.success("Employee Added Successfully!")
+                        st.session_state["show_add_form"] = False
+                        st.rerun()
+
+                    if cancel:
+                        st.session_state["show_add_form"] = False
+                        st.rerun()
+
 
 # =====================================================
 # ATTENDANCE
