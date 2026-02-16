@@ -230,16 +230,43 @@ if menu == "Employee Directory":
 
             update = st.form_submit_button("💾 Update")
 
-            if update:
+           if update:
 
-                row_number = df.index[df["employee_id"].astype(str) == str(selected_id)][0] + 2
+    # Find correct row (add +2 because sheet has header)
+    row_number = df.index[
+        df["employee_id"].astype(str) == str(selected_id)
+    ][0] + 2
 
-                employees_ws.update(f"B{row_number}", full_name)
-                employees_ws.update(f"H{row_number}", department)
-                employees_ws.update(f"I{row_number}", position)
-                employees_ws.update(f"N{row_number}", daily_rate_basic)
-                employees_ws.update(f"O{row_number}", daily_rate_transport)
-                employees_ws.update(f"P{row_number}", allowance_monthly)
+    # Build full updated row (match sheet column order exactly)
+    updated_row = [
+        selected_id,                                  # A employee_id
+        full_name,                                    # B full_name
+        selected_emp["place_of_birth"],               # C
+        selected_emp["date_of_birth"],                # D
+        selected_emp["national_id_number"],           # E
+        selected_emp["gender"],                       # F
+        selected_emp["join_date"],                    # G
+        department,                                   # H
+        position,                                     # I
+        selected_emp["address"],                      # J
+        selected_emp["bank_account_number"],          # K
+        selected_emp["marital_status"],               # L
+        selected_emp["mothers_maiden_name"],          # M
+        daily_rate_basic,                             # N
+        daily_rate_transport,                         # O
+        allowance_monthly,                            # P
+        selected_emp["status"]                        # Q
+    ]
+
+    employees_ws.update(
+        f"A{row_number}:Q{row_number}",
+        [updated_row]
+    )
+
+    st.success("Employee Updated Successfully!")
+    st.session_state["edit_mode"] = False
+    st.rerun()
+
 
                 st.success("Employee Updated Successfully!")
                 st.session_state["edit_mode"] = False
