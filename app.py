@@ -353,20 +353,9 @@ if menu == "Dashboard":
         st.markdown("---")
         
         # Employee Distribution
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.markdown('<div class="section-header">📊 Employees by Department</div>', unsafe_allow_html=True)
-            dept_dist = df_emp["department"].value_counts()
-            st.bar_chart(dept_dist)
-        
-        with col2:
-            st.markdown('<div class="section-header">👥 Employees by Gender</div>', unsafe_allow_html=True)
-            if "gender" in df_emp.columns:
-                gender_dist = df_emp["gender"].value_counts()
-                st.pie_chart(gender_dist)
-            else:
-                st.info("No gender data available")
+        st.markdown('<div class="section-header">📊 Employees by Department</div>', unsafe_allow_html=True)
+        dept_dist = df_emp["department"].value_counts()
+        st.bar_chart(dept_dist)
 
 # =====================================================
 # EMPLOYEE DIRECTORY
