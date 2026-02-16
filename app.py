@@ -349,13 +349,6 @@ if menu == "Dashboard":
         with col4:
             departments = df_emp["department"].nunique() if not df_emp.empty else 0
             st.metric("🏢 Departments", departments)
-        
-        st.markdown("---")
-        
-        # Employee Distribution
-        st.markdown('<div class="section-header">📊 Employees by Department</div>', unsafe_allow_html=True)
-        dept_dist = df_emp["department"].value_counts()
-        st.bar_chart(dept_dist)
 
 # =====================================================
 # EMPLOYEE DIRECTORY
