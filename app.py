@@ -32,14 +32,13 @@ users_ws = client.open_by_key(sheet_id).worksheet("users")
 # =====================================================
 
 def load_sheet(ws):
-    data = ws.get_all_records()
-    return pd.DataFrame(data)
+    return pd.DataFrame(ws.get_all_records())
 
 def append_row(ws, data):
     ws.append_row(data)
 
 # =====================================================
-# LOGIN SYSTEM
+# LOGIN
 # =====================================================
 
 def login():
@@ -75,7 +74,7 @@ if not st.session_state["logged_in"]:
     st.stop()
 
 # =====================================================
-# SIDEBAR MENU
+# SIDEBAR
 # =====================================================
 
 st.sidebar.success(f"{st.session_state['username']} ({st.session_state['role']})")
@@ -100,13 +99,12 @@ if menu == "Dashboard":
     st.metric("Total Employees", len(df))
 
 # =====================================================
-# EMPLOYEE DIRECTORY
+# EMPLOYEE DIRECTORY (VIEW + EDIT + DELETE)
 # =====================================================
 
 elif menu == "Employee Directory":
 
     st.title("👥 Employee Directory")
-
     df = load_sheet(employees_ws)
 
     if df.empty:
@@ -127,7 +125,7 @@ elif menu == "Employee Directory":
 
     col1, col2 = st.columns(2)
 
-    # ================= EDIT =================
+    # ========== EDIT ==========
     with col1:
         if st.button("✏️ Edit Employee"):
             st.session_state["edit_mode"] = True
@@ -168,26 +166,26 @@ elif menu == "Employee Directory":
 
                 row_number = df.index[
                     df["employee_id"].astype(str) == str(selected_id)
-                ][0] + 2  # +2 because sheet header
+                ][0] + 2
 
                 updated_row = [
                     str(selected_id),
-                    full_name,
-                    selected_emp["place_of_birth"],
-                    selected_emp["date_of_birth"],
-                    selected_emp["national_id_number"],
-                    selected_emp["gender"],
-                    selected_emp["join_date"],
-                    department,
-                    position,
-                    selected_emp["address"],
+                    str(full_name),
+                    str(selected_emp["place_of_birth"]),
+                    str(selected_emp["date_of_birth"]),
+                    str(selected_emp["national_id_number"]),
+                    str(selected_emp["gender"]),
+                    str(selected_emp["join_date"]),
+                    str(department),
+                    str(position),
+                    str(selected_emp["address"]),
                     str(bank_account),
-                    selected_emp["marital_status"],
-                    selected_emp["mothers_maiden_name"],
+                    str(selected_emp["marital_status"]),
+                    str(selected_emp["mothers_maiden_name"]),
                     float(daily_rate_basic),
                     float(daily_rate_transport),
                     float(allowance_monthly),
-                    selected_emp["status"]
+                    str(selected_emp["status"])
                 ]
 
                 employees_ws.update(
@@ -199,7 +197,7 @@ elif menu == "Employee Directory":
                 st.session_state["edit_mode"] = False
                 st.rerun()
 
-    # ================= DELETE =================
+    # ========== DELETE ==========
     with col2:
         if st.button("🗑 Delete Employee"):
             st.session_state["confirm_delete"] = True
@@ -218,9 +216,7 @@ elif menu == "Employee Directory":
                 row_number = df.index[
                     df["employee_id"].astype(str) == str(selected_id)
                 ][0] + 2
-
                 employees_ws.delete_rows(row_number)
-
                 st.success("Employee Deleted Successfully!")
                 st.session_state["confirm_delete"] = False
                 st.rerun()
@@ -229,11 +225,6 @@ elif menu == "Employee Directory":
             if st.button("❌ Cancel"):
                 st.session_state["confirm_delete"] = False
                 st.rerun()
-
-
-    st.title("👥 Employee Directory")
-    df = load_sheet(employees_ws)
-    st.dataframe(df, use_container_width=True)
 
 # =====================================================
 # ADD NEW EMPLOYEE
@@ -251,18 +242,10 @@ elif menu == "Employee Directory > Add New Employee":
             employee_id = st.text_input("Employee ID")
             full_name = st.text_input("Full Name")
             place_of_birth = st.text_input("Place of Birth")
-            date_of_birth = st.date_input(
-                "Date of Birth",
-                min_value=date(1950, 1, 1),
-                max_value=date.today()
-            )
+            date_of_birth = st.date_input("Date of Birth")
             national_id_number = st.text_input("National ID Number")
             gender = st.selectbox("Gender", ["Male", "Female"])
-            join_date = st.date_input(
-                "Join Date",
-                min_value=date(2000, 1, 1),
-                max_value=date.today()
-            )
+            join_date = st.date_input("Join Date")
 
         with col2:
             department = st.text_input("Department")
@@ -306,7 +289,6 @@ elif menu == "Employee Directory > Add New Employee":
 # =====================================================
 
 elif menu == "Attendance":
-
     st.title("📅 Attendance")
     df = load_sheet(attendance_ws)
     st.dataframe(df, use_container_width=True)
@@ -326,10 +308,7 @@ elif menu == "Payroll":
         st.warning("No attendance data")
         st.stop()
 
-    # ✅ SORT MONTH NEWEST → OLDEST
-    month_list = df_att["date"].str[:7].unique()
-    month_list = sorted(month_list, reverse=True)
-
+    month_list = sorted(df_att["date"].str[:7].unique(), reverse=True)
     selected_month = st.selectbox("Select Month", month_list)
 
     df_month = df_att[df_att["date"].str.startswith(selected_month)]
@@ -348,7 +327,7 @@ elif menu == "Payroll":
         payroll.append([
             emp["employee_id"],
             emp["full_name"],
-            str(emp["bank_account_number"]),  # FORCE STRING
+            str(emp["bank_account_number"]),
             present_days,
             float(emp["daily_rate_basic"]),
             float(emp["daily_rate_transport"]),
@@ -393,10 +372,7 @@ elif menu == "Payroll":
 
     st.subheader("Payroll Summary")
     st.dataframe(edited_df, use_container_width=True)
-
     st.metric("Total Payroll Cost", edited_df["Total Salary"].sum())
-
-    # ================= SAFE EXCEL EXPORT =================
 
     output = BytesIO()
     export_df = edited_df.copy()
@@ -404,10 +380,7 @@ elif menu == "Payroll":
 
     with pd.ExcelWriter(output, engine="openpyxl") as writer:
         export_df.to_excel(writer, index=False, sheet_name="Payroll")
-
         worksheet = writer.sheets["Payroll"]
-
-        # Force Bank Account column to TEXT
         for cell in worksheet["C"]:
             cell.number_format = "@"
 
