@@ -74,7 +74,7 @@ if not st.session_state["logged_in"]:
     st.stop()
 
 # =====================================================
-# SIDEBAR
+# SIDEBAR MENU
 # =====================================================
 
 st.sidebar.success(f"{st.session_state['username']} ({st.session_state['role']})")
@@ -85,6 +85,7 @@ menu = st.sidebar.selectbox(
         "Dashboard",
         "Employee Directory",
         "Employee Directory > Add New Employee",
+        "Employee Directory > Bulk Upload",
         "Attendance",
         "Payroll"
     ]
@@ -99,7 +100,7 @@ if menu == "Dashboard":
     st.metric("Total Employees", len(df))
 
 # =====================================================
-# EMPLOYEE DIRECTORY (VIEW + EDIT + DELETE)
+# EMPLOYEE DIRECTORY
 # =====================================================
 
 elif menu == "Employee Directory":
@@ -125,7 +126,7 @@ elif menu == "Employee Directory":
 
     col1, col2 = st.columns(2)
 
-    # ========== EDIT ==========
+    # EDIT
     with col1:
         if st.button("✏️ Edit Employee"):
             st.session_state["edit_mode"] = True
@@ -140,25 +141,11 @@ elif menu == "Employee Directory":
             full_name = st.text_input("Full Name", selected_emp["full_name"])
             department = st.text_input("Department", selected_emp["department"])
             position = st.text_input("Position", selected_emp["position"])
-            bank_account = st.text_input(
-                "Bank Account Number",
-                str(selected_emp["bank_account_number"])
-            )
+            bank_account = st.text_input("Bank Account Number", str(selected_emp["bank_account_number"]))
 
-            daily_rate_basic = st.number_input(
-                "Daily Rate Basic",
-                value=float(selected_emp["daily_rate_basic"])
-            )
-
-            daily_rate_transport = st.number_input(
-                "Daily Rate Transport",
-                value=float(selected_emp["daily_rate_transport"])
-            )
-
-            allowance_monthly = st.number_input(
-                "Allowance Monthly",
-                value=float(selected_emp["allowance_monthly"])
-            )
+            daily_rate_basic = st.number_input("Daily Rate Basic", value=float(selected_emp["daily_rate_basic"]))
+            daily_rate_transport = st.number_input("Daily Rate Transport", value=float(selected_emp["daily_rate_transport"]))
+            allowance_monthly = st.number_input("Allowance Monthly", value=float(selected_emp["allowance_monthly"]))
 
             update = st.form_submit_button("💾 Update")
 
@@ -188,43 +175,21 @@ elif menu == "Employee Directory":
                     str(selected_emp["status"])
                 ]
 
-                employees_ws.update(
-                    f"A{row_number}:Q{row_number}",
-                    [updated_row]
-                )
+                employees_ws.update(f"A{row_number}:Q{row_number}", [updated_row])
 
                 st.success("Employee Updated Successfully!")
                 st.session_state["edit_mode"] = False
                 st.rerun()
 
-    # ========== DELETE ==========
+    # DELETE
     with col2:
         if st.button("🗑 Delete Employee"):
-            st.session_state["confirm_delete"] = True
-
-    if "confirm_delete" not in st.session_state:
-        st.session_state["confirm_delete"] = False
-
-    if st.session_state["confirm_delete"]:
-
-        st.warning("Are you sure you want to delete this employee?")
-
-        col_yes, col_no = st.columns(2)
-
-        with col_yes:
-            if st.button("✅ Yes, Delete"):
-                row_number = df.index[
-                    df["employee_id"].astype(str) == str(selected_id)
-                ][0] + 2
-                employees_ws.delete_rows(row_number)
-                st.success("Employee Deleted Successfully!")
-                st.session_state["confirm_delete"] = False
-                st.rerun()
-
-        with col_no:
-            if st.button("❌ Cancel"):
-                st.session_state["confirm_delete"] = False
-                st.rerun()
+            row_number = df.index[
+                df["employee_id"].astype(str) == str(selected_id)
+            ][0] + 2
+            employees_ws.delete_rows(row_number)
+            st.success("Employee Deleted Successfully!")
+            st.rerun()
 
 # =====================================================
 # ADD NEW EMPLOYEE
@@ -280,8 +245,85 @@ elif menu == "Employee Directory > Add New Employee":
                 allowance_monthly,
                 "Active"
             ])
-
             st.success("Employee Added Successfully!")
+            st.rerun()
+
+# =====================================================
+# BULK UPLOAD
+# =====================================================
+
+elif menu == "Employee Directory > Bulk Upload":
+
+    st.title("📂 Bulk Upload Employees")
+
+    template_columns = [
+        "employee_id","full_name","place_of_birth","date_of_birth",
+        "national_id_number","gender","join_date","department",
+        "position","address","bank_account_number","marital_status",
+        "mothers_maiden_name","daily_rate_basic","daily_rate_transport","allowance_monthly"
+    ]
+
+    template_df = pd.DataFrame(columns=template_columns)
+    buffer = BytesIO()
+    template_df.to_excel(buffer, index=False)
+    buffer.seek(0)
+
+    st.download_button(
+        "⬇ Download Template",
+        buffer,
+        "employee_template.xlsx"
+    )
+
+    uploaded_file = st.file_uploader("Upload Excel", type=["xlsx"])
+
+    if uploaded_file:
+        df_upload = pd.read_excel(uploaded_file)
+        df_existing = load_sheet(employees_ws)
+
+        if st.button("Process Upload"):
+
+            existing_ids = df_existing["employee_id"].astype(str).tolist()
+            new_rows = []
+
+            for _, row in df_upload.iterrows():
+
+                emp_id = str(row["employee_id"])
+
+                row_data = [
+                    str(row["employee_id"]),
+                    str(row["full_name"]),
+                    str(row["place_of_birth"]),
+                    str(row["date_of_birth"]),
+                    str(row["national_id_number"]),
+                    str(row["gender"]),
+                    str(row["join_date"]),
+                    str(row["department"]),
+                    str(row["position"]),
+                    str(row["address"]),
+                    str(row["bank_account_number"]),
+                    str(row["marital_status"]),
+                    str(row["mothers_maiden_name"]),
+                    float(row["daily_rate_basic"]),
+                    float(row["daily_rate_transport"]),
+                    float(row["allowance_monthly"]),
+                    "Active"
+                ]
+
+                if emp_id in existing_ids:
+
+                    row_number = df_existing.index[
+                        df_existing["employee_id"].astype(str) == emp_id
+                    ][0] + 2
+
+                    employees_ws.update(f"A{row_number}:Q{row_number}", [row_data])
+
+                else:
+                    new_rows.append(row_data)
+
+            if new_rows:
+                employees_ws.append_rows(new_rows)
+
+            st.success("Upload Complete!")
             st.rerun()
 
 # =====================================================
@@ -339,24 +381,15 @@ elif menu == "Payroll":
     payroll_df = pd.DataFrame(
         payroll,
         columns=[
-            "Employee ID",
-            "Name",
-            "Bank Account Number",
-            "Present Days",
-            "Daily Basic",
-            "Daily Transport",
-            "Allowance",
-            "Overtime",
-            "Bonus"
+            "Employee ID","Name","Bank Account Number",
+            "Present Days","Daily Basic","Daily Transport",
+            "Allowance","Overtime","Bonus"
         ]
     )
 
     edit_mode = st.toggle("✏️ Edit Overtime & Bonus")
 
-    if edit_mode:
-        edited_df = st.data_editor(payroll_df, use_container_width=True)
-    else:
-        edited_df = payroll_df.copy()
+    edited_df = st.data_editor(payroll_df) if edit_mode else payroll_df.copy()
 
     edited_df["Salary From Attendance"] = (
         edited_df["Present Days"] *
@@ -370,7 +403,6 @@ elif menu == "Payroll":
         edited_df["Bonus"]
     )
 
-    st.subheader("Payroll Summary")
     st.dataframe(edited_df, use_container_width=True)
     st.metric("Total Payroll Cost", edited_df["Total Salary"].sum())
 
