@@ -178,7 +178,7 @@ if menu == "Attendance":
     st.dataframe(df, use_container_width=True)
 
 # =============================
-# PAYROLL
+# PAYROLL (SCALABLE VERSION)
 # =============================
 
 if menu == "Payroll":
@@ -197,7 +197,7 @@ if menu == "Payroll":
 
     df_month = df_att[df_att["date"].str.startswith(selected_month)]
 
-    payroll_data = []
+    payroll = []
 
     for _, emp in df_emp.iterrows():
 
@@ -219,68 +219,61 @@ if menu == "Payroll":
         salary_transport = present_days * transport
         salary_from_attendance = salary_basic + salary_transport
 
-        st.markdown(f"### {name} ({emp_id})")
-
-        col1, col2 = st.columns(2)
-
-        with col1:
-            overtime = st.number_input(
-                f"Overtime - {emp_id}",
-                min_value=0,
-                value=0,
-                key=f"ot_{emp_id}"
-            )
-
-        with col2:
-            bonus = st.number_input(
-                f"Bonus - {emp_id}",
-                min_value=0,
-                value=0,
-                key=f"bonus_{emp_id}"
-            )
-
-        total_salary = salary_from_attendance + allowance + overtime + bonus
-
-        payroll_data.append([
+        payroll.append([
             emp_id,
             name,
             present_days,
             basic,
             transport,
-            salary_from_attendance,
             allowance,
-            overtime,
-            bonus,
-            total_salary
+            0,   # Overtime default
+            0    # Bonus default
         ])
 
-        st.divider()
-
     payroll_df = pd.DataFrame(
-        payroll_data,
+        payroll,
         columns=[
             "Employee ID",
             "Name",
             "Present Days",
             "Daily Basic",
             "Daily Transport",
-            "Salary From Attendance",
             "Allowance",
             "Overtime",
-            "Bonus",
-            "Total Salary"
+            "Bonus"
         ]
     )
 
-    st.subheader("Payroll Summary")
-    st.dataframe(payroll_df, use_container_width=True)
+    st.subheader("Edit Overtime & Bonus")
 
-    st.metric("Total Payroll Cost", payroll_df["Total Salary"].sum())
+    edited_df = st.data_editor(
+        payroll_df,
+        use_container_width=True,
+        num_rows="fixed"
+    )
+
+    # Recalculate totals
+    edited_df["Salary From Attendance"] = (
+        edited_df["Present Days"] *
+        (edited_df["Daily Basic"] + edited_df["Daily Transport"])
+    )
+
+    edited_df["Total Salary"] = (
+        edited_df["Salary From Attendance"] +
+        edited_df["Allowance"] +
+        edited_df["Overtime"] +
+        edited_df["Bonus"]
+    )
+
+    st.subheader("Payroll Summary")
+    st.dataframe(edited_df, use_container_width=True)
+
+    st.metric("Total Payroll Cost", edited_df["Total Salary"].sum())
 
     # Export Excel
     output = BytesIO()
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        payroll_df.to_excel(writer, index=False)
+        edited_df.to_excel(writer, index=False)
 
     st.download_button(
         "Download Payroll Excel",
