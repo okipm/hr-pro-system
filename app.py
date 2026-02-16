@@ -2,14 +2,14 @@ import streamlit as st
 import pandas as pd
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
-from datetime import date
+from datetime import date, datetime
 from io import BytesIO
 
 st.set_page_config(page_title="HR PRO SYSTEM", layout="wide")
 
-# =============================
+# =====================================================
 # GOOGLE CONNECTION
-# =============================
+# =====================================================
 
 scope = [
     "https://spreadsheets.google.com/feeds",
@@ -26,10 +26,11 @@ sheet_id = st.secrets["google_sheet"]["sheet_id"]
 employees_ws = client.open_by_key(sheet_id).worksheet("employees")
 attendance_ws = client.open_by_key(sheet_id).worksheet("attendance")
 users_ws = client.open_by_key(sheet_id).worksheet("users")
+payroll_log_ws = client.open_by_key(sheet_id).worksheet("payroll_log")
 
-# =============================
+# =====================================================
 # FUNCTIONS
-# =============================
+# =====================================================
 
 def load_sheet(ws):
     data = ws.get_all_records()
@@ -38,9 +39,9 @@ def load_sheet(ws):
 def append_row(ws, data):
     ws.append_row(data)
 
-# =============================
-# LOGIN SYSTEM
-# =============================
+# =====================================================
+# LOGIN
+# =====================================================
 
 def login():
     st.title("🔐 HR PRO LOGIN")
@@ -54,18 +55,15 @@ def login():
         users["username"] = users["username"].astype(str).str.strip()
         users["password"] = users["password"].astype(str).str.strip()
 
-        username_input = str(username).strip()
-        password_input = str(password).strip()
-
         user = users[
-            (users["username"] == username_input) &
-            (users["password"] == password_input)
+            (users["username"] == username.strip()) &
+            (users["password"] == password.strip())
         ]
 
         if not user.empty:
             st.session_state["logged_in"] = True
             st.session_state["role"] = user.iloc[0]["role"]
-            st.session_state["username"] = username_input
+            st.session_state["username"] = username
             st.rerun()
         else:
             st.error("Invalid credentials")
@@ -77,9 +75,9 @@ if not st.session_state["logged_in"]:
     login()
     st.stop()
 
-# =============================
+# =====================================================
 # SIDEBAR
-# =============================
+# =====================================================
 
 st.sidebar.success(f"{st.session_state['username']} ({st.session_state['role']})")
 
@@ -88,18 +86,17 @@ menu = st.sidebar.selectbox(
     ["Dashboard", "Employee Directory", "Attendance", "Payroll"]
 )
 
-
-# =============================
+# =====================================================
 # DASHBOARD
-# =============================
+# =====================================================
 
 if menu == "Dashboard":
     df = load_sheet(employees_ws)
     st.metric("Total Employees", len(df))
 
-# =============================
+# =====================================================
 # EMPLOYEE DIRECTORY
-# =============================
+# =====================================================
 
 if menu == "Employee Directory":
 
@@ -110,78 +107,80 @@ if menu == "Employee Directory":
 
     if st.session_state["role"] in ["Admin", "HR"]:
 
-        st.subheader("➕ Add New Employee")
+        show_form = st.toggle("➕ Add New Employee")
 
-        with st.form("employee_form"):
+        if show_form:
 
-            employee_id = st.text_input("Employee ID")
-            full_name = st.text_input("Full Name")
-            place_of_birth = st.text_input("Place of Birth")
+            with st.form("employee_form"):
 
-            date_of_birth = st.date_input(
-                "Date of Birth",
-                min_value=date(1950, 1, 1),
-                max_value=date.today()
-            )
+                employee_id = st.text_input("Employee ID")
+                full_name = st.text_input("Full Name")
+                place_of_birth = st.text_input("Place of Birth")
 
-            national_id_number = st.text_input("National ID Number")
-            gender = st.selectbox("Gender", ["Male", "Female"])
+                date_of_birth = st.date_input(
+                    "Date of Birth",
+                    min_value=date(1950, 1, 1),
+                    max_value=date.today()
+                )
 
-            join_date = st.date_input(
-                "Join Date",
-                min_value=date(2000, 1, 1),
-                max_value=date.today()
-            )
+                national_id_number = st.text_input("National ID Number")
+                gender = st.selectbox("Gender", ["Male", "Female"])
 
-            department = st.text_input("Department")
-            position = st.text_input("Position")
-            address = st.text_area("Address")
-            bank_account_number = st.text_input("Bank Account Number")
-            marital_status = st.selectbox("Marital Status", ["Single", "Married"])
-            mothers_maiden_name = st.text_input("Mother's Maiden Name")
+                join_date = st.date_input(
+                    "Join Date",
+                    min_value=date(2000, 1, 1),
+                    max_value=date.today()
+                )
 
-            daily_rate_basic = st.number_input("Daily Rate Basic", min_value=0)
-            daily_rate_transport = st.number_input("Daily Rate Transportation", min_value=0)
-            allowance_monthly = st.number_input("Allowance Monthly (Fixed)", min_value=0)
+                department = st.text_input("Department")
+                position = st.text_input("Position")
+                address = st.text_area("Address")
+                bank_account_number = st.text_input("Bank Account Number")
+                marital_status = st.selectbox("Marital Status", ["Single", "Married"])
+                mothers_maiden_name = st.text_input("Mother's Maiden Name")
 
-            status = "Active"
+                daily_rate_basic = st.number_input("Daily Rate Basic", min_value=0)
+                daily_rate_transport = st.number_input("Daily Rate Transportation", min_value=0)
+                allowance_monthly = st.number_input("Allowance Monthly (Fixed)", min_value=0)
 
-            submitted = st.form_submit_button("Save")
+                status = "Active"
 
-            if submitted:
-                append_row(employees_ws, [
-                    employee_id,
-                    full_name,
-                    place_of_birth,
-                    str(date_of_birth),
-                    national_id_number,
-                    gender,
-                    str(join_date),
-                    department,
-                    position,
-                    address,
-                    bank_account_number,
-                    marital_status,
-                    mothers_maiden_name,
-                    daily_rate_basic,
-                    daily_rate_transport,
-                    allowance_monthly,
-                    status
-                ])
-                st.success("Employee Added Successfully!")
+                submitted = st.form_submit_button("Save")
 
-# =============================
+                if submitted:
+                    append_row(employees_ws, [
+                        employee_id,
+                        full_name,
+                        place_of_birth,
+                        str(date_of_birth),
+                        national_id_number,
+                        gender,
+                        str(join_date),
+                        department,
+                        position,
+                        address,
+                        bank_account_number,
+                        marital_status,
+                        mothers_maiden_name,
+                        daily_rate_basic,
+                        daily_rate_transport,
+                        allowance_monthly,
+                        status
+                    ])
+                    st.success("Employee Added Successfully!")
+                    st.rerun()
+
+# =====================================================
 # ATTENDANCE
-# =============================
+# =====================================================
 
 if menu == "Attendance":
     df = load_sheet(attendance_ws)
     st.dataframe(df, use_container_width=True)
 
-
-# =============================
-# PAYROLL (ENTERPRISE VERSION)
-# =============================
+# =====================================================
+# PAYROLL (ENTERPRISE CLEAN VERSION)
+# =====================================================
 
 if menu == "Payroll":
 
@@ -189,8 +188,6 @@ if menu == "Payroll":
 
     df_emp = load_sheet(employees_ws)
     df_att = load_sheet(attendance_ws)
-
-    payroll_log_ws = client.open_by_key(sheet_id).worksheet("payroll_log")
     df_log = load_sheet(payroll_log_ws)
 
     if df_att.empty:
@@ -200,12 +197,10 @@ if menu == "Payroll":
     month_list = df_att["date"].str[:7].unique()
     selected_month = st.selectbox("Select Month", month_list)
 
-    # Check if month already finalized
+    locked = False
     if not df_log.empty and selected_month in df_log["month"].values:
-        st.success("✅ Payroll already finalized for this month")
         locked = True
-    else:
-        locked = False
+        st.success("✅ Payroll already finalized for this month")
 
     df_month = df_att[df_att["date"].str.startswith(selected_month)]
 
@@ -216,9 +211,8 @@ if menu == "Payroll":
     if selected_dept != "All":
         df_emp = df_emp[df_emp["department"] == selected_dept]
 
-    # Search Employee
+    # Search
     search = st.text_input("Search Employee (Name or ID)")
-
     if search:
         df_emp = df_emp[
             df_emp["full_name"].str.contains(search, case=False) |
@@ -229,29 +223,21 @@ if menu == "Payroll":
 
     for _, emp in df_emp.iterrows():
 
-        emp_id = emp["employee_id"]
-        name = emp["full_name"]
-        department = emp["department"]
-
-        basic = float(emp["daily_rate_basic"])
-        transport = float(emp["daily_rate_transport"])
-        allowance = float(emp["allowance_monthly"])
-
         present_days = len(
             df_month[
-                (df_month["employee_id"] == emp_id) &
+                (df_month["employee_id"] == emp["employee_id"]) &
                 (df_month["status"] == "Present")
             ]
         )
 
         payroll.append([
-            emp_id,
-            name,
-            department,
+            emp["employee_id"],
+            emp["full_name"],
+            emp["department"],
             present_days,
-            basic,
-            transport,
-            allowance,
+            float(emp["daily_rate_basic"]),
+            float(emp["daily_rate_transport"]),
+            float(emp["allowance_monthly"]),
             0,
             0
         ])
@@ -271,25 +257,16 @@ if menu == "Payroll":
         ]
     )
 
-# Toggle Edit Mode
-edit_mode = False
+    # Edit Mode
+    if not locked:
+        edit_mode = st.toggle("✏️ Edit Overtime & Bonus")
+    else:
+        edit_mode = False
 
-if not locked:
-    edit_mode = st.toggle("✏️ Edit Overtime & Bonus")
-
-if locked:
-    st.success("✅ Payroll already finalized for this month")
-    edited_df = payroll_df.copy()
-
-elif edit_mode:
-    edited_df = st.data_editor(
-        payroll_df,
-        use_container_width=True,
-        num_rows="fixed"
-    )
-else:
-    edited_df = payroll_df.copy()
-
+    if edit_mode and not locked:
+        edited_df = st.data_editor(payroll_df, use_container_width=True)
+    else:
+        edited_df = payroll_df.copy()
 
     # Recalculate
     edited_df["Salary From Attendance"] = (
@@ -310,11 +287,9 @@ else:
     total_cost = edited_df["Total Salary"].sum()
     st.metric("Total Payroll Cost", total_cost)
 
-    # Finalize Payroll
+    # Finalize
     if not locked:
         if st.button("✅ Finalize Payroll"):
-
-            from datetime import datetime
 
             for _, row in edited_df.iterrows():
                 payroll_log_ws.append_row([
@@ -335,7 +310,7 @@ else:
             st.success("Payroll Finalized & Saved!")
             st.rerun()
 
-    # Export Excel
+    # Export
     output = BytesIO()
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
         edited_df.to_excel(writer, index=False)
