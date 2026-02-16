@@ -106,6 +106,132 @@ if menu == "Dashboard":
 elif menu == "Employee Directory":
 
     st.title("👥 Employee Directory")
+
+    df = load_sheet(employees_ws)
+
+    if df.empty:
+        st.info("No employees found.")
+        st.stop()
+
+    st.dataframe(df, use_container_width=True)
+
+    st.markdown("---")
+    st.subheader("⚙ Manage Employee")
+
+    selected_id = st.selectbox(
+        "Select Employee",
+        df["employee_id"].astype(str)
+    )
+
+    selected_emp = df[df["employee_id"].astype(str) == str(selected_id)].iloc[0]
+
+    col1, col2 = st.columns(2)
+
+    # ================= EDIT =================
+    with col1:
+        if st.button("✏️ Edit Employee"):
+            st.session_state["edit_mode"] = True
+
+    if "edit_mode" not in st.session_state:
+        st.session_state["edit_mode"] = False
+
+    if st.session_state["edit_mode"]:
+
+        with st.form("edit_employee_form"):
+
+            full_name = st.text_input("Full Name", selected_emp["full_name"])
+            department = st.text_input("Department", selected_emp["department"])
+            position = st.text_input("Position", selected_emp["position"])
+            bank_account = st.text_input(
+                "Bank Account Number",
+                str(selected_emp["bank_account_number"])
+            )
+
+            daily_rate_basic = st.number_input(
+                "Daily Rate Basic",
+                value=float(selected_emp["daily_rate_basic"])
+            )
+
+            daily_rate_transport = st.number_input(
+                "Daily Rate Transport",
+                value=float(selected_emp["daily_rate_transport"])
+            )
+
+            allowance_monthly = st.number_input(
+                "Allowance Monthly",
+                value=float(selected_emp["allowance_monthly"])
+            )
+
+            update = st.form_submit_button("💾 Update")
+
+            if update:
+
+                row_number = df.index[
+                    df["employee_id"].astype(str) == str(selected_id)
+                ][0] + 2  # +2 because sheet header
+
+                updated_row = [
+                    str(selected_id),
+                    full_name,
+                    selected_emp["place_of_birth"],
+                    selected_emp["date_of_birth"],
+                    selected_emp["national_id_number"],
+                    selected_emp["gender"],
+                    selected_emp["join_date"],
+                    department,
+                    position,
+                    selected_emp["address"],
+                    str(bank_account),
+                    selected_emp["marital_status"],
+                    selected_emp["mothers_maiden_name"],
+                    float(daily_rate_basic),
+                    float(daily_rate_transport),
+                    float(allowance_monthly),
+                    selected_emp["status"]
+                ]
+
+                employees_ws.update(
+                    f"A{row_number}:Q{row_number}",
+                    [updated_row]
+                )
+
+                st.success("Employee Updated Successfully!")
+                st.session_state["edit_mode"] = False
+                st.rerun()
+
+    # ================= DELETE =================
+    with col2:
+        if st.button("🗑 Delete Employee"):
+            st.session_state["confirm_delete"] = True
+
+    if "confirm_delete" not in st.session_state:
+        st.session_state["confirm_delete"] = False
+
+    if st.session_state["confirm_delete"]:
+
+        st.warning("Are you sure you want to delete this employee?")
+
+        col_yes, col_no = st.columns(2)
+
+        with col_yes:
+            if st.button("✅ Yes, Delete"):
+                row_number = df.index[
+                    df["employee_id"].astype(str) == str(selected_id)
+                ][0] + 2
+
+                employees_ws.delete_rows(row_number)
+
+                st.success("Employee Deleted Successfully!")
+                st.session_state["confirm_delete"] = False
+                st.rerun()
+
+        with col_no:
+            if st.button("❌ Cancel"):
+                st.session_state["confirm_delete"] = False
+                st.rerun()
+
+
+    st.title("👥 Employee Directory")
     df = load_sheet(employees_ws)
     st.dataframe(df, use_container_width=True)
 
