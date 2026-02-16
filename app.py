@@ -95,7 +95,7 @@ if menu == "Dashboard":
     st.metric("Total Employees", len(df))
 
 # =====================================================
-# EMPLOYEE DIRECTORY (PRO VERSION)
+# EMPLOYEE DIRECTORY (ADVANCED VERSION)
 # =====================================================
 
 if menu == "Employee Directory":
@@ -103,97 +103,178 @@ if menu == "Employee Directory":
     st.title("👥 Employee Directory")
 
     df = load_sheet(employees_ws)
-    st.dataframe(df, use_container_width=True)
 
-    if st.session_state["role"] in ["Admin", "HR"]:
+    # ---------- HEADER ROW ----------
+    col1, col2 = st.columns([8, 2])
 
-        # Add Button
+    with col1:
+        st.subheader("Employee List")
+
+    with col2:
         if st.button("➕ Add Employee"):
             st.session_state["show_add_form"] = True
 
-        # Initialize state
-        if "show_add_form" not in st.session_state:
-            st.session_state["show_add_form"] = False
+    # ---------- EMPLOYEE TABLE ----------
+    st.dataframe(df, use_container_width=True)
 
-        # Expander Form
-        if st.session_state["show_add_form"]:
+    # =====================================================
+    # ADD EMPLOYEE FORM
+    # =====================================================
 
-            with st.expander("📝 New Employee Form", expanded=True):
+    if "show_add_form" not in st.session_state:
+        st.session_state["show_add_form"] = False
 
-                with st.form("employee_form"):
+    if st.session_state["show_add_form"]:
 
-                    col1, col2 = st.columns(2)
+        with st.expander("📝 New Employee Form", expanded=True):
 
-                    with col1:
-                        employee_id = st.text_input("Employee ID")
-                        full_name = st.text_input("Full Name")
-                        place_of_birth = st.text_input("Place of Birth")
+            with st.form("add_employee_form"):
 
-                        date_of_birth = st.date_input(
-                            "Date of Birth",
-                            min_value=date(1950, 1, 1),
-                            max_value=date.today()
-                        )
+                col1, col2 = st.columns(2)
 
-                        national_id_number = st.text_input("National ID Number")
-                        gender = st.selectbox("Gender", ["Male", "Female"])
+                with col1:
+                    employee_id = st.text_input("Employee ID")
+                    full_name = st.text_input("Full Name")
+                    place_of_birth = st.text_input("Place of Birth")
 
-                        join_date = st.date_input(
-                            "Join Date",
-                            min_value=date(2000, 1, 1),
-                            max_value=date.today()
-                        )
+                    date_of_birth = st.date_input(
+                        "Date of Birth",
+                        min_value=date(1950, 1, 1),
+                        max_value=date.today()
+                    )
 
-                    with col2:
-                        department = st.text_input("Department")
-                        position = st.text_input("Position")
-                        address = st.text_area("Address")
-                        bank_account_number = st.text_input("Bank Account Number")
-                        marital_status = st.selectbox("Marital Status", ["Single", "Married"])
-                        mothers_maiden_name = st.text_input("Mother's Maiden Name")
+                    national_id_number = st.text_input("National ID Number")
+                    gender = st.selectbox("Gender", ["Male", "Female"])
 
-                        daily_rate_basic = st.number_input("Daily Rate Basic", min_value=0)
-                        daily_rate_transport = st.number_input("Daily Rate Transportation", min_value=0)
-                        allowance_monthly = st.number_input("Allowance Monthly (Fixed)", min_value=0)
+                    join_date = st.date_input(
+                        "Join Date",
+                        min_value=date(2000, 1, 1),
+                        max_value=date.today()
+                    )
 
-                    status = "Active"
+                with col2:
+                    department = st.text_input("Department")
+                    position = st.text_input("Position")
+                    address = st.text_area("Address")
+                    bank_account_number = st.text_input("Bank Account Number")
+                    marital_status = st.selectbox("Marital Status", ["Single", "Married"])
+                    mothers_maiden_name = st.text_input("Mother's Maiden Name")
 
-                    col_save, col_cancel = st.columns(2)
+                    daily_rate_basic = st.number_input("Daily Rate Basic", min_value=0)
+                    daily_rate_transport = st.number_input("Daily Rate Transportation", min_value=0)
+                    allowance_monthly = st.number_input("Allowance Monthly (Fixed)", min_value=0)
 
-                    with col_save:
-                        submitted = st.form_submit_button("💾 Save Employee")
+                save = st.form_submit_button("💾 Save")
 
-                    with col_cancel:
-                        cancel = st.form_submit_button("❌ Cancel")
+                if save:
+                    append_row(employees_ws, [
+                        employee_id,
+                        full_name,
+                        place_of_birth,
+                        str(date_of_birth),
+                        national_id_number,
+                        gender,
+                        str(join_date),
+                        department,
+                        position,
+                        address,
+                        bank_account_number,
+                        marital_status,
+                        mothers_maiden_name,
+                        daily_rate_basic,
+                        daily_rate_transport,
+                        allowance_monthly,
+                        "Active"
+                    ])
 
-                    if submitted:
-                        append_row(employees_ws, [
-                            employee_id,
-                            full_name,
-                            place_of_birth,
-                            str(date_of_birth),
-                            national_id_number,
-                            gender,
-                            str(join_date),
-                            department,
-                            position,
-                            address,
-                            bank_account_number,
-                            marital_status,
-                            mothers_maiden_name,
-                            daily_rate_basic,
-                            daily_rate_transport,
-                            allowance_monthly,
-                            status
-                        ])
+                    st.success("Employee Added Successfully!")
+                    st.session_state["show_add_form"] = False
+                    st.rerun()
 
-                        st.success("Employee Added Successfully!")
-                        st.session_state["show_add_form"] = False
-                        st.rerun()
+    # =====================================================
+    # EDIT / DELETE SECTION
+    # =====================================================
 
-                    if cancel:
-                        st.session_state["show_add_form"] = False
-                        st.rerun()
+    st.markdown("---")
+    st.subheader("⚙️ Manage Employee")
+
+    selected_id = st.selectbox(
+        "Select Employee",
+        df["employee_id"].astype(str)
+    )
+
+    selected_emp = df[df["employee_id"].astype(str) == str(selected_id)].iloc[0]
+
+    col_edit, col_delete = st.columns(2)
+
+    # ========================= EDIT =========================
+    with col_edit:
+
+        if st.button("✏️ Edit Employee"):
+
+            st.session_state["edit_mode"] = True
+
+    if "edit_mode" not in st.session_state:
+        st.session_state["edit_mode"] = False
+
+    if st.session_state["edit_mode"]:
+
+        with st.form("edit_employee_form"):
+
+            full_name = st.text_input("Full Name", selected_emp["full_name"])
+            department = st.text_input("Department", selected_emp["department"])
+            position = st.text_input("Position", selected_emp["position"])
+            daily_rate_basic = st.number_input("Daily Rate Basic", value=float(selected_emp["daily_rate_basic"]))
+            daily_rate_transport = st.number_input("Daily Rate Transport", value=float(selected_emp["daily_rate_transport"]))
+            allowance_monthly = st.number_input("Allowance Monthly", value=float(selected_emp["allowance_monthly"]))
+
+            update = st.form_submit_button("💾 Update")
+
+            if update:
+
+                row_number = df.index[df["employee_id"].astype(str) == str(selected_id)][0] + 2
+
+                employees_ws.update(f"B{row_number}", full_name)
+                employees_ws.update(f"H{row_number}", department)
+                employees_ws.update(f"I{row_number}", position)
+                employees_ws.update(f"N{row_number}", daily_rate_basic)
+                employees_ws.update(f"O{row_number}", daily_rate_transport)
+                employees_ws.update(f"P{row_number}", allowance_monthly)
+
+                st.success("Employee Updated Successfully!")
+                st.session_state["edit_mode"] = False
+                st.rerun()
+
+    # ========================= DELETE =========================
+    with col_delete:
+
+        if st.button("🗑 Delete Employee"):
+            st.session_state["confirm_delete"] = True
+
+    if "confirm_delete" not in st.session_state:
+        st.session_state["confirm_delete"] = False
+
+    if st.session_state["confirm_delete"]:
+
+        st.warning("Are you sure you want to delete this employee?")
+
+        col_yes, col_no = st.columns(2)
+
+        with col_yes:
+            if st.button("✅ Yes, Delete"):
+
+                row_number = df.index[df["employee_id"].astype(str) == str(selected_id)][0] + 2
+                employees_ws.delete_rows(row_number)
+
+                st.success("Employee Deleted Successfully!")
+                st.session_state["confirm_delete"] = False
+                st.rerun()
+
+        with col_no:
+            if st.button("❌ Cancel"):
+                st.session_state["confirm_delete"] = False
+                st.rerun()
+
 
 
 # =====================================================
