@@ -10,7 +10,7 @@ from io import BytesIO
 # =====================================================
 
 st.set_page_config(
-    page_title="HR PRO SYSTEM",
+    page_title="HR System",
     layout="wide",
     initial_sidebar_state="collapsed",
     menu_items={
@@ -294,7 +294,7 @@ def get_employee_display_name(emp_id, df):
 
 def login():
     """Login page"""
-    st.markdown('<div class="main-header">🔐 HR PRO LOGIN</div>', unsafe_allow_html=True)
+    st.markdown('<div class="main-header">🔐 HR LOGIN</div>', unsafe_allow_html=True)
     
     col1, col2, col3 = st.columns([1, 2, 1])
     
