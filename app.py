@@ -178,7 +178,7 @@ if menu == "Attendance":
     st.dataframe(df, use_container_width=True)
 
 # =============================
-# PAYROLL (SCALABLE VERSION)
+# PAYROLL (WITH HIDE / SHOW EDIT)
 # =============================
 
 if menu == "Payroll":
@@ -215,10 +215,6 @@ if menu == "Payroll":
             ]
         )
 
-        salary_basic = present_days * basic
-        salary_transport = present_days * transport
-        salary_from_attendance = salary_basic + salary_transport
-
         payroll.append([
             emp_id,
             name,
@@ -226,8 +222,8 @@ if menu == "Payroll":
             basic,
             transport,
             allowance,
-            0,   # Overtime default
-            0    # Bonus default
+            0,
+            0
         ])
 
     payroll_df = pd.DataFrame(
@@ -244,15 +240,19 @@ if menu == "Payroll":
         ]
     )
 
-    st.subheader("Edit Overtime & Bonus")
+    # Toggle Button
+    edit_mode = st.toggle("✏️ Edit Overtime & Bonus")
 
-    edited_df = st.data_editor(
-        payroll_df,
-        use_container_width=True,
-        num_rows="fixed"
-    )
+    if edit_mode:
+        edited_df = st.data_editor(
+            payroll_df,
+            use_container_width=True,
+            num_rows="fixed"
+        )
+    else:
+        edited_df = payroll_df
 
-    # Recalculate totals
+    # Recalculate
     edited_df["Salary From Attendance"] = (
         edited_df["Present Days"] *
         (edited_df["Daily Basic"] + edited_df["Daily Transport"])
