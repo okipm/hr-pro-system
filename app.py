@@ -36,21 +36,29 @@ def login():
     username = st.text_input("Username")
     password = st.text_input("Password", type="password")
 
-if st.button("Login"):
-    users = load_sheet(users_ws)
+    if st.button("Login"):
+        users = load_sheet(users_ws)
 
-    user = users[
-        (users["username"] == username) &
-        (users["password"] == password)
-    ]
+        # Force everything to string & strip spaces
+        users["username"] = users["username"].astype(str).str.strip()
+        users["password"] = users["password"].astype(str).str.strip()
 
-    if not user.empty:
-        st.session_state["logged_in"] = True
-        st.session_state["role"] = user.iloc[0]["role"]
-        st.session_state["username"] = username
-        st.rerun()
-    else:
-        st.error("Invalid credentials")
+        username_input = str(username).strip()
+        password_input = str(password).strip()
+
+        user = users[
+            (users["username"] == username_input) &
+            (users["password"] == password_input)
+        ]
+
+        if not user.empty:
+            st.session_state["logged_in"] = True
+            st.session_state["role"] = user.iloc[0]["role"]
+            st.session_state["username"] = username_input
+            st.rerun()
+        else:
+            st.error("Invalid credentials")
+
 
 if "logged_in" not in st.session_state:
     st.session_state["logged_in"] = False
