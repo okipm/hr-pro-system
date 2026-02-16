@@ -83,7 +83,7 @@ if not st.session_state["logged_in"]:
 
 st.sidebar.success(f"{st.session_state['username']} ({st.session_state['role']})")
 
-menu = st.sidebar.selectbox(
+menu = st.sidebar.radio(
     "Menu",
     ["Dashboard", "Employee Directory", "Attendance", "Payroll"]
 )
