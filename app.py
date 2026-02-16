@@ -2,10 +2,14 @@ import streamlit as st
 import pandas as pd
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
-from datetime import datetime
+from datetime import date
 from io import BytesIO
 
 st.set_page_config(page_title="HR PRO SYSTEM", layout="wide")
+
+# =============================
+# GOOGLE CONNECTION
+# =============================
 
 scope = [
     "https://spreadsheets.google.com/feeds",
@@ -23,12 +27,20 @@ employees_ws = client.open_by_key(sheet_id).worksheet("employees")
 attendance_ws = client.open_by_key(sheet_id).worksheet("attendance")
 users_ws = client.open_by_key(sheet_id).worksheet("users")
 
+# =============================
+# FUNCTIONS
+# =============================
+
 def load_sheet(ws):
     data = ws.get_all_records()
     return pd.DataFrame(data)
 
 def append_row(ws, data):
     ws.append_row(data)
+
+# =============================
+# LOGIN SYSTEM
+# =============================
 
 def login():
     st.title("🔐 HR PRO LOGIN")
@@ -39,7 +51,6 @@ def login():
     if st.button("Login"):
         users = load_sheet(users_ws)
 
-        # Force everything to string & strip spaces
         users["username"] = users["username"].astype(str).str.strip()
         users["password"] = users["password"].astype(str).str.strip()
 
@@ -59,13 +70,16 @@ def login():
         else:
             st.error("Invalid credentials")
 
-
 if "logged_in" not in st.session_state:
     st.session_state["logged_in"] = False
 
 if not st.session_state["logged_in"]:
     login()
     st.stop()
+
+# =============================
+# SIDEBAR
+# =============================
 
 st.sidebar.success(f"{st.session_state['username']} ({st.session_state['role']})")
 
@@ -74,9 +88,17 @@ menu = st.sidebar.selectbox(
     ["Dashboard", "Employee Directory", "Attendance", "Payroll"]
 )
 
+# =============================
+# DASHBOARD
+# =============================
+
 if menu == "Dashboard":
     df = load_sheet(employees_ws)
     st.metric("Total Employees", len(df))
+
+# =============================
+# EMPLOYEE DIRECTORY
+# =============================
 
 if menu == "Employee Directory":
 
@@ -90,32 +112,32 @@ if menu == "Employee Directory":
         st.subheader("➕ Add New Employee")
 
         with st.form("employee_form"):
-employee_id = st.text_input("Employee ID")
-full_name = st.text_input("Full Name")
-place_of_birth = st.text_input("Place of Birth")
 
-date_of_birth = st.date_input(
-    "Date of Birth",
-    min_value=date(1950, 1, 1),
-    max_value=date.today()
-)
+            employee_id = st.text_input("Employee ID")
+            full_name = st.text_input("Full Name")
+            place_of_birth = st.text_input("Place of Birth")
 
-national_id_number = st.text_input("National ID Number")
-gender = st.selectbox("Gender", ["Male", "Female"])
+            date_of_birth = st.date_input(
+                "Date of Birth",
+                min_value=date(1950, 1, 1),
+                max_value=date.today()
+            )
 
-join_date = st.date_input(
-    "Join Date",
-    min_value=date(2000, 1, 1),
-    max_value=date.today()
-)
+            national_id_number = st.text_input("National ID Number")
+            gender = st.selectbox("Gender", ["Male", "Female"])
 
-department = st.text_input("Department")
-position = st.text_input("Position")
-address = st.text_area("Address")
-bank_account_number = st.text_input("Bank Account Number")
-marital_status = st.selectbox("Marital Status", ["Single", "Married"])
-mothers_maiden_name = st.text_input("Mother's Maiden Name")
+            join_date = st.date_input(
+                "Join Date",
+                min_value=date(2000, 1, 1),
+                max_value=date.today()
+            )
 
+            department = st.text_input("Department")
+            position = st.text_input("Position")
+            address = st.text_area("Address")
+            bank_account_number = st.text_input("Bank Account Number")
+            marital_status = st.selectbox("Marital Status", ["Single", "Married"])
+            mothers_maiden_name = st.text_input("Mother's Maiden Name")
 
             daily_rate_basic = st.number_input("Daily Rate Basic", min_value=0)
             daily_rate_transport = st.number_input("Daily Rate Transportation", min_value=0)
@@ -147,9 +169,17 @@ mothers_maiden_name = st.text_input("Mother's Maiden Name")
                 ])
                 st.success("Employee Added Successfully!")
 
+# =============================
+# ATTENDANCE
+# =============================
+
 if menu == "Attendance":
     df = load_sheet(attendance_ws)
     st.dataframe(df, use_container_width=True)
+
+# =============================
+# PAYROLL
+# =============================
 
 if menu == "Payroll":
 
@@ -185,7 +215,6 @@ if menu == "Payroll":
 
         total_daily = basic + transport
         salary_from_attendance = present_days * total_daily
-
         total_salary = salary_from_attendance + allowance
 
         payroll.append([
