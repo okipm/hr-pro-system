@@ -411,52 +411,15 @@ elif menu == "Employee Directory":
         selected_emp = df[df["employee_id"].astype(str) == str(selected_id)].iloc[0]
         
         # Action Buttons
-        col1, col2, col3 = st.columns(3)
+        col1, col2 = st.columns(2)
         
         with col1:
             if st.button("✏️ Edit Employee", use_container_width=True, key="edit_btn"):
                 st.session_state["edit_mode"] = True
         
         with col2:
-            if st.button("📋 View Full Details", use_container_width=True, key="view_btn"):
-                st.session_state["view_mode"] = True
-        
-        with col3:
             if st.button("🗑️ Delete Employee", use_container_width=True, type="secondary", key="delete_btn"):
                 st.session_state["confirm_delete"] = True
-        
-        # View Details Mode
-        if st.session_state.get("view_mode", False):
-            st.markdown("---")
-            st.markdown('<div class="section-header">📄 Employee Details</div>', unsafe_allow_html=True)
-            
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                st.write(f"**Employee ID:** {selected_emp['employee_id']}")
-                st.write(f"**Full Name:** {selected_emp['full_name']}")
-                st.write(f"**Department:** {selected_emp['department']}")
-                st.write(f"**Position:** {selected_emp['position']}")
-                st.write(f"**Gender:** {selected_emp.get('gender', 'N/A')}")
-                st.write(f"**Marital Status:** {selected_emp.get('marital_status', 'N/A')}")
-            
-            with col2:
-                st.write(f"**Date of Birth:** {selected_emp.get('date_of_birth', 'N/A')}")
-                st.write(f"**Place of Birth:** {selected_emp.get('place_of_birth', 'N/A')}")
-                st.write(f"**National ID:** {selected_emp.get('national_id_number', 'N/A')}")
-                st.write(f"**Join Date:** {selected_emp.get('join_date', 'N/A')}")
-                st.write(f"**Bank Account:** {selected_emp.get('bank_account_number', 'N/A')}")
-                st.write(f"**Status:** {selected_emp['status']}")
-            
-            st.write(f"**Address:** {selected_emp.get('address', 'N/A')}")
-            
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                st.metric("Daily Rate (Basic)", f"${selected_emp.get('daily_rate_basic', 0)}")
-            with col2:
-                st.metric("Daily Rate (Transport)", f"${selected_emp.get('daily_rate_transport', 0)}")
-            with col3:
-                st.metric("Monthly Allowance", f"${selected_emp.get('allowance_monthly', 0)}")
         
         # Edit Mode
         if "edit_mode" not in st.session_state:
@@ -560,7 +523,7 @@ elif menu == "Add New Employee":
         with col1:
             employee_id = st.text_input("Employee ID", placeholder="EMP001", key="emp_id")
             full_name = st.text_input("Full Name", placeholder="John Doe", key="full_name")
-            date_of_birth = st.date_input("Date of Birth", key="dob")
+            date_of_birth = st.date_input("Date of Birth", min_value=date(1950, 1, 1), max_value=date.today(), key="dob")
             place_of_birth = st.text_input("Place of Birth", placeholder="New York", key="pob")
         
         with col2:
@@ -727,21 +690,12 @@ elif menu == "Attendance":
     if df.empty:
         st.info("📭 No attendance records found.")
     else:
-        col1, col2 = st.columns([2, 1])
-        
-        with col1:
-            if "date" in df.columns:
-                dates = sorted(df["date"].unique(), reverse=True)
-                selected_date = st.selectbox("Select Date", dates)
-                df_filtered = df[df["date"] == selected_date]
-                st.markdown(f"**📋 Records for {selected_date}: {len(df_filtered)}**")
-                st.dataframe(df_filtered, use_container_width=True, hide_index=True)
-        
-        with col2:
-            if "status" in df.columns:
-                st.markdown('<div class="section-header">Status Summary</div>', unsafe_allow_html=True)
-                status_count = df["status"].value_counts()
-                st.dataframe(status_count, use_container_width=True)
+        if "date" in df.columns:
+            dates = sorted(df["date"].unique(), reverse=True)
+            selected_date = st.selectbox("Select Date", dates)
+            df_filtered = df[df["date"] == selected_date]
+            st.markdown(f"**📋 Records for {selected_date}: {len(df_filtered)}**")
+            st.dataframe(df_filtered, use_container_width=True, hide_index=True)
 
 # =====================================================
 # PAYROLL
@@ -823,10 +777,10 @@ elif menu == "Payroll":
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
-        st.metric("💰 Total Payroll", f"${edited_df['Total Salary'].sum():,.2f}")
+        st.metric("💰 Total Payroll", f"{edited_df['Total Salary'].sum():,.2f}")
     
     with col2:
-        st.metric("📊 Avg Salary", f"${edited_df['Total Salary'].mean():,.2f}")
+        st.metric("📊 Avg Salary", f"{edited_df['Total Salary'].mean():,.2f}")
     
     with col3:
         st.metric("👥 Employee Count", len(edited_df))
