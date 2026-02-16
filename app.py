@@ -12,7 +12,7 @@ from io import BytesIO
 st.set_page_config(
     page_title="HR PRO SYSTEM",
     layout="wide",
-    initial_sidebar_state="expanded",
+    initial_sidebar_state="collapsed",
     menu_items={
         'About': "HR Management System v1.0"
     }
@@ -104,6 +104,40 @@ st.markdown("""
         margin-bottom: 1rem;
     }
     
+    /* Navigation Buttons */
+    .nav-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        margin-bottom: 2rem;
+        justify-content: center;
+    }
+    
+    .nav-button {
+        padding: 1rem 1.5rem;
+        border-radius: 8px;
+        border: 2px solid #1f77b4;
+        background-color: white;
+        color: #1f77b4;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-block;
+    }
+    
+    .nav-button:hover {
+        background-color: #1f77b4;
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(31, 119, 180, 0.3);
+    }
+    
+    .nav-button.active {
+        background-color: #1f77b4;
+        color: white;
+    }
+    
     /* Buttons */
     .stButton>button {
         border-radius: 8px;
@@ -142,6 +176,17 @@ st.markdown("""
     .stInfo, .stWarning, .stError, .stSuccess {
         border-radius: 8px;
         border-left: 4px solid;
+    }
+    
+    /* User Info Bar */
+    .user-info-bar {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 1rem;
+        border-radius: 8px;
+        margin-bottom: 1.5rem;
+        text-align: center;
+        font-weight: 600;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -291,32 +336,63 @@ if not st.session_state["logged_in"]:
     st.stop()
 
 # =====================================================
-# SIDEBAR NAVIGATION
+# NAVIGATION BUTTONS (DIRECT CLICK)
 # =====================================================
 
-st.sidebar.markdown(f"""
-<div class="sidebar-header">
-👤 {st.session_state['username']}
-</div>
-<div style="font-size: 0.9rem; color: #666; margin-bottom: 1.5rem;">
-Role: <strong>{st.session_state['role']}</strong>
+# Initialize current_page session state
+if "current_page" not in st.session_state:
+    st.session_state["current_page"] = "Dashboard"
+
+# User Info Bar
+st.markdown(f"""
+<div class="user-info-bar">
+👤 {st.session_state['username']} | Role: {st.session_state['role']}
 </div>
 """, unsafe_allow_html=True)
 
-st.sidebar.markdown("---")
+# Navigation Buttons
+st.markdown('<div class="nav-container">', unsafe_allow_html=True)
 
-menu = st.sidebar.selectbox(
-    "Navigation Menu",
-    [
-        "Dashboard",
-        "Employee Directory",
-        "Add New Employee",
-        "Bulk Upload Employees",
-        "Attendance",
-        "Payroll"
-    ],
-    index=0
-)
+col1, col2, col3, col4, col5, col6 = st.columns(6)
+
+with col1:
+    if st.button("📊 Dashboard", use_container_width=True, key="nav_dashboard"):
+        st.session_state["current_page"] = "Dashboard"
+        st.rerun()
+
+with col2:
+    if st.button("👥 Directory", use_container_width=True, key="nav_directory"):
+        st.session_state["current_page"] = "Employee Directory"
+        st.rerun()
+
+with col3:
+    if st.button("➕ Add Employee", use_container_width=True, key="nav_add"):
+        st.session_state["current_page"] = "Add New Employee"
+        st.rerun()
+
+with col4:
+    if st.button("📂 Bulk Upload", use_container_width=True, key="nav_bulk"):
+        st.session_state["current_page"] = "Bulk Upload Employees"
+        st.rerun()
+
+with col5:
+    if st.button("📅 Attendance", use_container_width=True, key="nav_attendance"):
+        st.session_state["current_page"] = "Attendance"
+        st.rerun()
+
+with col6:
+    if st.button("💰 Payroll", use_container_width=True, key="nav_payroll"):
+        st.session_state["current_page"] = "Payroll"
+        st.rerun()
+
+st.markdown('</div>', unsafe_allow_html=True)
+st.markdown("---")
+
+# =====================================================
+# PAGE ROUTING
+# =====================================================
+
+menu = st.session_state["current_page"]
 
 # =====================================================
 # DASHBOARD
