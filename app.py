@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import gspread
-from oauth2client.service_account import ServiceAccountCredentials
+from google.oauth2.service_account import Credentials
 from datetime import date
 from io import BytesIO
 
@@ -147,24 +147,74 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # =====================================================
-# GOOGLE CONNECTION
+# GOOGLE SHEETS CONNECTION WITH ERROR HANDLING
 # =====================================================
 
-scope = [
-    "https://spreadsheets.google.com/feeds",
-    "https://www.googleapis.com/auth/drive"
-]
+@st.cache_resource
+def init_gspread_client():
+    """Initialize Google Sheets client with proper error handling"""
+    try:
+        # Define required scopes
+        scopes = [
+            "https://www.googleapis.com/auth/spreadsheets",
+            "https://www.googleapis.com/auth/drive"
+        ]
+        
+        # Get credentials from Streamlit secrets
+        credentials_dict = st.secrets["gcp_service_account"]
+        
+        # Create credentials object using google.oauth2
+        credentials = Credentials.from_service_account_info(
+            credentials_dict,
+            scopes=scopes
+        )
+        
+        # Authorize gspread client
+        client = gspread.authorize(credentials)
+        return client
+    
+    except KeyError:
+        st.error("❌ Error: 'gcp_service_account' not found in secrets. Please check .streamlit/secrets.toml")
+        st.stop()
+    except Exception as e:
+        st.error(f"❌ Authentication Error: {str(e)}")
+        st.stop()
 
-creds = ServiceAccountCredentials.from_json_keyfile_dict(
-    st.secrets["gcp_service_account"], scope
-)
+@st.cache_resource
+def get_worksheets():
+    """Get worksheet references with error handling"""
+    try:
+        client = init_gspread_client()
+        sheet_id = st.secrets["google_sheet"]["sheet_id"]
+        
+        # Open spreadsheet
+        spreadsheet = client.open_by_key(sheet_id)
+        
+        # Get worksheets
+        employees_ws = spreadsheet.worksheet("employees")
+        attendance_ws = spreadsheet.worksheet("attendance")
+        users_ws = spreadsheet.worksheet("users")
+        
+        return employees_ws, attendance_ws, users_ws
+    
+    except KeyError:
+        st.error("❌ Error: 'google_sheet' -> 'sheet_id' not found in secrets")
+        st.stop()
+    except gspread.exceptions.WorksheetNotFound as e:
+        st.error(f"❌ Worksheet not found: {str(e)}\n\nPlease ensure your Google Sheet has these worksheets: 'employees', 'attendance', 'users'")
+        st.stop()
+    except gspread.exceptions.APIError as e:
+        st.error(f"❌ Google Sheets API Error: {str(e)}\n\n**Solutions:**\n1. Check that the service account email has access to the Google Sheet\n2. Share the Google Sheet with: `{st.secrets['gcp_service_account'].get('client_email', 'N/A')}`\n3. Verify the sheet_id is correct")
+        st.stop()
+    except Exception as e:
+        st.error(f"❌ Unexpected Error: {str(e)}")
+        st.stop()
 
-client = gspread.authorize(creds)
-sheet_id = st.secrets["google_sheet"]["sheet_id"]
-
-employees_ws = client.open_by_key(sheet_id).worksheet("employees")
-attendance_ws = client.open_by_key(sheet_id).worksheet("attendance")
-users_ws = client.open_by_key(sheet_id).worksheet("users")
+# Get worksheet references
+try:
+    employees_ws, attendance_ws, users_ws = get_worksheets()
+except:
+    st.stop()
 
 # =====================================================
 # UTILITY FUNCTIONS
@@ -172,11 +222,19 @@ users_ws = client.open_by_key(sheet_id).worksheet("users")
 
 def load_sheet(ws):
     """Load worksheet data as DataFrame"""
-    return pd.DataFrame(ws.get_all_records())
+    try:
+        return pd.DataFrame(ws.get_all_records())
+    except Exception as e:
+        st.error(f"Error loading sheet: {str(e)}")
+        return pd.DataFrame()
 
 def append_row(ws, data):
     """Append new row to worksheet"""
-    ws.append_row(data)
+    try:
+        ws.append_row(data)
+    except Exception as e:
+        st.error(f"Error appending row: {str(e)}")
+        raise
 
 def get_employee_display_name(emp_id, df):
     """Get employee display name from ID"""
@@ -204,21 +262,24 @@ def login():
         if st.button("🔓 Login", use_container_width=True, type="primary"):
             users = load_sheet(users_ws)
             
-            users["username"] = users["username"].astype(str).str.strip()
-            users["password"] = users["password"].astype(str).str.strip()
-            
-            user = users[
-                (users["username"] == username.strip()) &
-                (users["password"] == password.strip())
-            ]
-            
-            if not user.empty:
-                st.session_state["logged_in"] = True
-                st.session_state["role"] = user.iloc[0]["role"]
-                st.session_state["username"] = username
-                st.rerun()
+            if users.empty:
+                st.error("❌ No users found. Please check the 'users' worksheet in Google Sheets.")
             else:
-                st.error("❌ Invalid credentials. Please try again.")
+                users["username"] = users["username"].astype(str).str.strip()
+                users["password"] = users["password"].astype(str).str.strip()
+                
+                user = users[
+                    (users["username"] == username.strip()) &
+                    (users["password"] == password.strip())
+                ]
+                
+                if not user.empty:
+                    st.session_state["logged_in"] = True
+                    st.session_state["role"] = user.iloc[0]["role"]
+                    st.session_state["username"] = username
+                    st.rerun()
+                else:
+                    st.error("❌ Invalid credentials. Please try again.")
         
         st.markdown('</div>', unsafe_allow_html=True)
 
@@ -267,29 +328,31 @@ if menu == "Dashboard":
     df_emp = load_sheet(employees_ws)
     df_att = load_sheet(attendance_ws)
     
-    # Key Metrics
-    col1, col2, col3, col4 = st.columns(4)
-    
-    with col1:
-        total_emp = len(df_emp)
-        st.metric("👥 Total Employees", total_emp, delta=None)
-    
-    with col2:
-        active_emp = len(df_emp[df_emp["status"] == "Active"]) if not df_emp.empty else 0
-        st.metric("✅ Active Employees", active_emp)
-    
-    with col3:
-        today_present = len(df_att[df_att["date"] == str(date.today())]) if not df_att.empty else 0
-        st.metric("📍 Present Today", today_present)
-    
-    with col4:
-        departments = df_emp["department"].nunique() if not df_emp.empty else 0
-        st.metric("🏢 Departments", departments)
-    
-    st.markdown("---")
-    
-    # Employee Distribution
-    if not df_emp.empty:
+    if df_emp.empty:
+        st.warning("⚠️ No employee data. Please add employees to get started.")
+    else:
+        # Key Metrics
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            total_emp = len(df_emp)
+            st.metric("👥 Total Employees", total_emp)
+        
+        with col2:
+            active_emp = len(df_emp[df_emp["status"] == "Active"]) if not df_emp.empty else 0
+            st.metric("✅ Active Employees", active_emp)
+        
+        with col3:
+            today_present = len(df_att[df_att["date"] == str(date.today())]) if not df_att.empty else 0
+            st.metric("📍 Present Today", today_present)
+        
+        with col4:
+            departments = df_emp["department"].nunique() if not df_emp.empty else 0
+            st.metric("🏢 Departments", departments)
+        
+        st.markdown("---")
+        
+        # Employee Distribution
         col1, col2 = st.columns(2)
         
         with col1:
@@ -299,10 +362,11 @@ if menu == "Dashboard":
         
         with col2:
             st.markdown('<div class="section-header">👥 Employees by Gender</div>', unsafe_allow_html=True)
-            gender_dist = df_emp["gender"].value_counts()
-            st.pie_chart(gender_dist)
-    else:
-        st.info("📭 No employee data available yet.")
+            if "gender" in df_emp.columns:
+                gender_dist = df_emp["gender"].value_counts()
+                st.pie_chart(gender_dist)
+            else:
+                st.info("No gender data available")
 
 # =====================================================
 # EMPLOYEE DIRECTORY
@@ -391,26 +455,26 @@ elif menu == "Employee Directory":
                 st.write(f"**Full Name:** {selected_emp['full_name']}")
                 st.write(f"**Department:** {selected_emp['department']}")
                 st.write(f"**Position:** {selected_emp['position']}")
-                st.write(f"**Gender:** {selected_emp['gender']}")
-                st.write(f"**Marital Status:** {selected_emp['marital_status']}")
+                st.write(f"**Gender:** {selected_emp.get('gender', 'N/A')}")
+                st.write(f"**Marital Status:** {selected_emp.get('marital_status', 'N/A')}")
             
             with col2:
-                st.write(f"**Date of Birth:** {selected_emp['date_of_birth']}")
-                st.write(f"**Place of Birth:** {selected_emp['place_of_birth']}")
-                st.write(f"**National ID:** {selected_emp['national_id_number']}")
-                st.write(f"**Join Date:** {selected_emp['join_date']}")
-                st.write(f"**Bank Account:** {selected_emp['bank_account_number']}")
+                st.write(f"**Date of Birth:** {selected_emp.get('date_of_birth', 'N/A')}")
+                st.write(f"**Place of Birth:** {selected_emp.get('place_of_birth', 'N/A')}")
+                st.write(f"**National ID:** {selected_emp.get('national_id_number', 'N/A')}")
+                st.write(f"**Join Date:** {selected_emp.get('join_date', 'N/A')}")
+                st.write(f"**Bank Account:** {selected_emp.get('bank_account_number', 'N/A')}")
                 st.write(f"**Status:** {selected_emp['status']}")
             
-            st.write(f"**Address:** {selected_emp['address']}")
+            st.write(f"**Address:** {selected_emp.get('address', 'N/A')}")
             
             col1, col2, col3 = st.columns(3)
             with col1:
-                st.metric("Daily Rate (Basic)", f"${selected_emp['daily_rate_basic']}")
+                st.metric("Daily Rate (Basic)", f"${selected_emp.get('daily_rate_basic', 0)}")
             with col2:
-                st.metric("Daily Rate (Transport)", f"${selected_emp['daily_rate_transport']}")
+                st.metric("Daily Rate (Transport)", f"${selected_emp.get('daily_rate_transport', 0)}")
             with col3:
-                st.metric("Monthly Allowance", f"${selected_emp['allowance_monthly']}")
+                st.metric("Monthly Allowance", f"${selected_emp.get('allowance_monthly', 0)}")
         
         # Edit Mode
         if "edit_mode" not in st.session_state:
@@ -429,11 +493,11 @@ elif menu == "Employee Directory":
                     position = st.text_input("Position", value=selected_emp["position"])
                 
                 with col2:
-                    bank_account = st.text_input("Bank Account Number", value=str(selected_emp["bank_account_number"]))
-                    daily_rate_basic = st.number_input("Daily Rate Basic", value=float(selected_emp["daily_rate_basic"]))
-                    daily_rate_transport = st.number_input("Daily Rate Transport", value=float(selected_emp["daily_rate_transport"]))
+                    bank_account = st.text_input("Bank Account Number", value=str(selected_emp.get("bank_account_number", "")))
+                    daily_rate_basic = st.number_input("Daily Rate Basic", value=float(selected_emp.get("daily_rate_basic", 0)))
+                    daily_rate_transport = st.number_input("Daily Rate Transport", value=float(selected_emp.get("daily_rate_transport", 0)))
                 
-                allowance_monthly = st.number_input("Monthly Allowance", value=float(selected_emp["allowance_monthly"]))
+                allowance_monthly = st.number_input("Monthly Allowance", value=float(selected_emp.get("allowance_monthly", 0)))
                 
                 col1, col2 = st.columns(2)
                 with col1:
@@ -442,32 +506,35 @@ elif menu == "Employee Directory":
                     cancel = st.form_submit_button("❌ Cancel", use_container_width=True)
                 
                 if update:
-                    row_number = df.index[df["employee_id"].astype(str) == str(selected_id)][0] + 2
-                    
-                    updated_row = [
-                        str(selected_id),
-                        str(full_name),
-                        str(selected_emp["place_of_birth"]),
-                        str(selected_emp["date_of_birth"]),
-                        str(selected_emp["national_id_number"]),
-                        str(selected_emp["gender"]),
-                        str(selected_emp["join_date"]),
-                        str(department),
-                        str(position),
-                        str(selected_emp["address"]),
-                        str(bank_account),
-                        str(selected_emp["marital_status"]),
-                        str(selected_emp["mothers_maiden_name"]),
-                        float(daily_rate_basic),
-                        float(daily_rate_transport),
-                        float(allowance_monthly),
-                        str(selected_emp["status"])
-                    ]
-                    
-                    employees_ws.update(f"A{row_number}:Q{row_number}", [updated_row])
-                    st.success("✅ Employee Updated Successfully!")
-                    st.session_state["edit_mode"] = False
-                    st.rerun()
+                    try:
+                        row_number = df.index[df["employee_id"].astype(str) == str(selected_id)][0] + 2
+                        
+                        updated_row = [
+                            str(selected_id),
+                            str(full_name),
+                            str(selected_emp.get("place_of_birth", "")),
+                            str(selected_emp.get("date_of_birth", "")),
+                            str(selected_emp.get("national_id_number", "")),
+                            str(selected_emp.get("gender", "")),
+                            str(selected_emp.get("join_date", "")),
+                            str(department),
+                            str(position),
+                            str(selected_emp.get("address", "")),
+                            str(bank_account),
+                            str(selected_emp.get("marital_status", "")),
+                            str(selected_emp.get("mothers_maiden_name", "")),
+                            float(daily_rate_basic),
+                            float(daily_rate_transport),
+                            float(allowance_monthly),
+                            str(selected_emp["status"])
+                        ]
+                        
+                        employees_ws.update(f"A{row_number}:Q{row_number}", [updated_row])
+                        st.success("✅ Employee Updated Successfully!")
+                        st.session_state["edit_mode"] = False
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"Error updating employee: {str(e)}")
                 
                 if cancel:
                     st.session_state["edit_mode"] = False
@@ -481,11 +548,14 @@ elif menu == "Employee Directory":
             col1, col2 = st.columns(2)
             with col1:
                 if st.button("✅ Yes, Delete", use_container_width=True, type="secondary"):
-                    row_number = df.index[df["employee_id"].astype(str) == str(selected_id)][0] + 2
-                    employees_ws.delete_rows(row_number)
-                    st.success("✅ Employee Deleted Successfully!")
-                    st.session_state["confirm_delete"] = False
-                    st.rerun()
+                    try:
+                        row_number = df.index[df["employee_id"].astype(str) == str(selected_id)][0] + 2
+                        employees_ws.delete_rows(row_number)
+                        st.success("✅ Employee Deleted Successfully!")
+                        st.session_state["confirm_delete"] = False
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"Error deleting employee: {str(e)}")
             
             with col2:
                 if st.button("❌ Cancel", use_container_width=True):
@@ -551,28 +621,31 @@ elif menu == "Add New Employee":
         if not employee_id or not full_name or not department or not position:
             st.error("❌ Please fill in all required fields (ID, Name, Department, Position)")
         else:
-            append_row(employees_ws, [
-                employee_id,
-                full_name,
-                place_of_birth,
-                str(date_of_birth),
-                national_id_number,
-                gender,
-                str(join_date),
-                department,
-                position,
-                address,
-                bank_account_number,
-                marital_status,
-                mothers_maiden_name,
-                daily_rate_basic,
-                daily_rate_transport,
-                allowance_monthly,
-                "Active"
-            ])
-            st.success("✅ Employee Added Successfully!")
-            st.balloons()
-            st.rerun()
+            try:
+                append_row(employees_ws, [
+                    employee_id,
+                    full_name,
+                    place_of_birth,
+                    str(date_of_birth),
+                    national_id_number,
+                    gender,
+                    str(join_date),
+                    department,
+                    position,
+                    address,
+                    bank_account_number,
+                    marital_status,
+                    mothers_maiden_name,
+                    daily_rate_basic,
+                    daily_rate_transport,
+                    allowance_monthly,
+                    "Active"
+                ])
+                st.success("✅ Employee Added Successfully!")
+                st.balloons()
+                st.rerun()
+            except Exception as e:
+                st.error(f"Error adding employee: {str(e)}")
 
 # =====================================================
 # BULK UPLOAD
@@ -608,54 +681,57 @@ elif menu == "Bulk Upload Employees":
     uploaded_file = st.file_uploader("Choose Excel file", type=["xlsx"])
     
     if uploaded_file:
-        df_upload = pd.read_excel(uploaded_file)
-        df_existing = load_sheet(employees_ws)
-        
-        st.info(f"📋 File contains {len(df_upload)} records")
-        st.dataframe(df_upload, use_container_width=True)
-        
-        if st.button("✅ Process Upload", use_container_width=True, type="primary"):
-            existing_ids = df_existing["employee_id"].astype(str).tolist()
-            new_rows = []
-            updated_count = 0
+        try:
+            df_upload = pd.read_excel(uploaded_file)
+            df_existing = load_sheet(employees_ws)
             
-            for _, row in df_upload.iterrows():
-                emp_id = str(row["employee_id"])
+            st.info(f"📋 File contains {len(df_upload)} records")
+            st.dataframe(df_upload, use_container_width=True)
+            
+            if st.button("✅ Process Upload", use_container_width=True, type="primary"):
+                existing_ids = df_existing["employee_id"].astype(str).tolist()
+                new_rows = []
+                updated_count = 0
                 
-                row_data = [
-                    str(row["employee_id"]),
-                    str(row["full_name"]),
-                    str(row["place_of_birth"]),
-                    str(row["date_of_birth"]),
-                    str(row["national_id_number"]),
-                    str(row["gender"]),
-                    str(row["join_date"]),
-                    str(row["department"]),
-                    str(row["position"]),
-                    str(row["address"]),
-                    str(row["bank_account_number"]),
-                    str(row["marital_status"]),
-                    str(row["mothers_maiden_name"]),
-                    float(row["daily_rate_basic"]),
-                    float(row["daily_rate_transport"]),
-                    float(row["allowance_monthly"]),
-                    "Active"
-                ]
+                for _, row in df_upload.iterrows():
+                    emp_id = str(row["employee_id"])
+                    
+                    row_data = [
+                        str(row["employee_id"]),
+                        str(row["full_name"]),
+                        str(row.get("place_of_birth", "")),
+                        str(row.get("date_of_birth", "")),
+                        str(row.get("national_id_number", "")),
+                        str(row.get("gender", "")),
+                        str(row.get("join_date", "")),
+                        str(row["department"]),
+                        str(row["position"]),
+                        str(row.get("address", "")),
+                        str(row.get("bank_account_number", "")),
+                        str(row.get("marital_status", "")),
+                        str(row.get("mothers_maiden_name", "")),
+                        float(row.get("daily_rate_basic", 0)),
+                        float(row.get("daily_rate_transport", 0)),
+                        float(row.get("allowance_monthly", 0)),
+                        "Active"
+                    ]
+                    
+                    if emp_id in existing_ids:
+                        row_number = df_existing.index[
+                            df_existing["employee_id"].astype(str) == emp_id
+                        ][0] + 2
+                        employees_ws.update(f"A{row_number}:Q{row_number}", [row_data])
+                        updated_count += 1
+                    else:
+                        new_rows.append(row_data)
                 
-                if emp_id in existing_ids:
-                    row_number = df_existing.index[
-                        df_existing["employee_id"].astype(str) == emp_id
-                    ][0] + 2
-                    employees_ws.update(f"A{row_number}:Q{row_number}", [row_data])
-                    updated_count += 1
-                else:
-                    new_rows.append(row_data)
-            
-            if new_rows:
-                employees_ws.append_rows(new_rows)
-            
-            st.success(f"✅ Upload Complete!\n\n📊 Added: {len(new_rows)} | Updated: {updated_count}")
-            st.rerun()
+                if new_rows:
+                    employees_ws.append_rows(new_rows)
+                
+                st.success(f"✅ Upload Complete!\n\n📊 Added: {len(new_rows)} | Updated: {updated_count}")
+                st.rerun()
+        except Exception as e:
+            st.error(f"Error processing file: {str(e)}")
 
 # =====================================================
 # ATTENDANCE
@@ -727,11 +803,11 @@ elif menu == "Payroll":
         payroll.append({
             "Employee ID": emp["employee_id"],
             "Name": emp["full_name"],
-            "Bank Account": str(emp["bank_account_number"]),
+            "Bank Account": str(emp.get("bank_account_number", "")),
             "Present Days": present_days,
-            "Daily Basic": float(emp["daily_rate_basic"]),
-            "Daily Transport": float(emp["daily_rate_transport"]),
-            "Allowance": float(emp["allowance_monthly"]),
+            "Daily Basic": float(emp.get("daily_rate_basic", 0)),
+            "Daily Transport": float(emp.get("daily_rate_transport", 0)),
+            "Allowance": float(emp.get("allowance_monthly", 0)),
             "Overtime": 0.0,
             "Bonus": 0.0
         })
@@ -779,23 +855,26 @@ elif menu == "Payroll":
     st.markdown("---")
     
     # Export Button
-    output = BytesIO()
-    export_df = edited_df.copy()
-    export_df["Bank Account"] = export_df["Bank Account"].astype(str)
-    
-    with pd.ExcelWriter(output, engine="openpyxl") as writer:
-        export_df.to_excel(writer, index=False, sheet_name="Payroll")
-        worksheet = writer.sheets["Payroll"]
-        for cell in worksheet["C"]:
-            cell.number_format = "@"
-    
-    output.seek(0)
-    
-    st.download_button(
-        "⬇️ Download Payroll Excel",
-        data=output,
-        file_name=f"Payroll_{selected_month}.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        use_container_width=True,
-        type="primary"
-    )
+    try:
+        output = BytesIO()
+        export_df = edited_df.copy()
+        export_df["Bank Account"] = export_df["Bank Account"].astype(str)
+        
+        with pd.ExcelWriter(output, engine="openpyxl") as writer:
+            export_df.to_excel(writer, index=False, sheet_name="Payroll")
+            worksheet = writer.sheets["Payroll"]
+            for cell in worksheet["C"]:
+                cell.number_format = "@"
+        
+        output.seek(0)
+        
+        st.download_button(
+            "⬇️ Download Payroll Excel",
+            data=output,
+            file_name=f"Payroll_{selected_month}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            use_container_width=True,
+            type="primary"
+        )
+    except Exception as e:
+        st.error(f"Error exporting payroll: {str(e)}")
