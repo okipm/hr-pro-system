@@ -7,9 +7,9 @@ from io import BytesIO
 
 st.set_page_config(page_title="HR PRO SYSTEM", layout="wide")
 
-# =============================
+# =====================================================
 # GOOGLE CONNECTION
-# =============================
+# =====================================================
 
 scope = [
     "https://spreadsheets.google.com/feeds",
@@ -27,9 +27,9 @@ employees_ws = client.open_by_key(sheet_id).worksheet("employees")
 attendance_ws = client.open_by_key(sheet_id).worksheet("attendance")
 users_ws = client.open_by_key(sheet_id).worksheet("users")
 
-# =============================
+# =====================================================
 # FUNCTIONS
-# =============================
+# =====================================================
 
 def load_sheet(ws):
     data = ws.get_all_records()
@@ -38,9 +38,9 @@ def load_sheet(ws):
 def append_row(ws, data):
     ws.append_row(data)
 
-# =============================
+# =====================================================
 # LOGIN SYSTEM
-# =============================
+# =====================================================
 
 def login():
     st.title("🔐 HR PRO LOGIN")
@@ -54,18 +54,15 @@ def login():
         users["username"] = users["username"].astype(str).str.strip()
         users["password"] = users["password"].astype(str).str.strip()
 
-        username_input = str(username).strip()
-        password_input = str(password).strip()
-
         user = users[
-            (users["username"] == username_input) &
-            (users["password"] == password_input)
+            (users["username"] == username.strip()) &
+            (users["password"] == password.strip())
         ]
 
         if not user.empty:
             st.session_state["logged_in"] = True
             st.session_state["role"] = user.iloc[0]["role"]
-            st.session_state["username"] = username_input
+            st.session_state["username"] = username
             st.rerun()
         else:
             st.error("Invalid credentials")
@@ -77,42 +74,55 @@ if not st.session_state["logged_in"]:
     login()
     st.stop()
 
-# =============================
-# SIDEBAR
-# =============================
+# =====================================================
+# SIDEBAR MENU
+# =====================================================
 
 st.sidebar.success(f"{st.session_state['username']} ({st.session_state['role']})")
 
 menu = st.sidebar.selectbox(
     "Menu",
-    ["Dashboard", "Employee Directory", "Attendance", "Payroll"]
+    [
+        "Dashboard",
+        "Employee Directory",
+        "Employee Directory > Add New Employee",
+        "Attendance",
+        "Payroll"
+    ]
 )
 
-# =============================
+# =====================================================
 # DASHBOARD
-# =============================
+# =====================================================
 
 if menu == "Dashboard":
     df = load_sheet(employees_ws)
     st.metric("Total Employees", len(df))
 
-# =============================
-# EMPLOYEE DIRECTORY
-# =============================
+# =====================================================
+# EMPLOYEE DIRECTORY (VIEW)
+# =====================================================
 
-if menu == "Employee Directory":
+elif menu == "Employee Directory":
 
     st.title("👥 Employee Directory")
 
     df = load_sheet(employees_ws)
     st.dataframe(df, use_container_width=True)
 
-    if st.session_state["role"] in ["Admin", "HR"]:
+# =====================================================
+# ADD NEW EMPLOYEE (SEPARATE PAGE)
+# =====================================================
 
-        st.subheader("➕ Add New Employee")
+elif menu == "Employee Directory > Add New Employee":
 
-        with st.form("employee_form"):
+    st.title("➕ Add New Employee")
 
+    with st.form("add_employee_form"):
+
+        col1, col2 = st.columns(2)
+
+        with col1:
             employee_id = st.text_input("Employee ID")
             full_name = st.text_input("Full Name")
             place_of_birth = st.text_input("Place of Birth")
@@ -132,6 +142,7 @@ if menu == "Employee Directory":
                 max_value=date.today()
             )
 
+        with col2:
             department = st.text_input("Department")
             position = st.text_input("Position")
             address = st.text_area("Address")
@@ -143,45 +154,48 @@ if menu == "Employee Directory":
             daily_rate_transport = st.number_input("Daily Rate Transportation", min_value=0)
             allowance_monthly = st.number_input("Allowance Monthly (Fixed)", min_value=0)
 
-            status = "Active"
+        save = st.form_submit_button("💾 Save Employee")
 
-            submitted = st.form_submit_button("Save")
+        if save:
+            append_row(employees_ws, [
+                employee_id,
+                full_name,
+                place_of_birth,
+                str(date_of_birth),
+                national_id_number,
+                gender,
+                str(join_date),
+                department,
+                position,
+                address,
+                bank_account_number,
+                marital_status,
+                mothers_maiden_name,
+                daily_rate_basic,
+                daily_rate_transport,
+                allowance_monthly,
+                "Active"
+            ])
 
-            if submitted:
-                append_row(employees_ws, [
-                    employee_id,
-                    full_name,
-                    place_of_birth,
-                    str(date_of_birth),
-                    national_id_number,
-                    gender,
-                    str(join_date),
-                    department,
-                    position,
-                    address,
-                    bank_account_number,
-                    marital_status,
-                    mothers_maiden_name,
-                    daily_rate_basic,
-                    daily_rate_transport,
-                    allowance_monthly,
-                    status
-                ])
-                st.success("Employee Added Successfully!")
+            st.success("Employee Added Successfully!")
+            st.rerun()
 
-# =============================
+# =====================================================
 # ATTENDANCE
-# =============================
+# =====================================================
 
-if menu == "Attendance":
+elif menu == "Attendance":
+
+    st.title("📅 Attendance")
+
     df = load_sheet(attendance_ws)
     st.dataframe(df, use_container_width=True)
 
-# =============================
-# PAYROLL (WITH HIDE / SHOW EDIT)
-# =============================
+# =====================================================
+# PAYROLL
+# =====================================================
 
-if menu == "Payroll":
+elif menu == "Payroll":
 
     st.title("💰 Payroll")
 
@@ -240,19 +254,13 @@ if menu == "Payroll":
         ]
     )
 
-    # Toggle Button
     edit_mode = st.toggle("✏️ Edit Overtime & Bonus")
 
     if edit_mode:
-        edited_df = st.data_editor(
-            payroll_df,
-            use_container_width=True,
-            num_rows="fixed"
-        )
+        edited_df = st.data_editor(payroll_df, use_container_width=True)
     else:
         edited_df = payroll_df
 
-    # Recalculate
     edited_df["Salary From Attendance"] = (
         edited_df["Present Days"] *
         (edited_df["Daily Basic"] + edited_df["Daily Transport"])
@@ -270,7 +278,6 @@ if menu == "Payroll":
 
     st.metric("Total Payroll Cost", edited_df["Total Salary"].sum())
 
-    # Export Excel
     output = BytesIO()
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
         edited_df.to_excel(writer, index=False)
