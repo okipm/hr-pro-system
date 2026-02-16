@@ -90,20 +90,32 @@ if menu == "Employee Directory":
         st.subheader("➕ Add New Employee")
 
         with st.form("employee_form"):
+employee_id = st.text_input("Employee ID")
+full_name = st.text_input("Full Name")
+place_of_birth = st.text_input("Place of Birth")
 
-            employee_id = st.text_input("Employee ID")
-            full_name = st.text_input("Full Name")
-            place_of_birth = st.text_input("Place of Birth")
-            date_of_birth = st.date_input("Date of Birth")
-            national_id_number = st.text_input("National ID Number")
-            gender = st.selectbox("Gender", ["Male", "Female"])
-            join_date = st.date_input("Join Date")
-            department = st.text_input("Department")
-            position = st.text_input("Position")
-            address = st.text_area("Address")
-            bank_account_number = st.text_input("Bank Account Number")
-            marital_status = st.selectbox("Marital Status", ["Single", "Married"])
-            mothers_maiden_name = st.text_input("Mother's Maiden Name")
+date_of_birth = st.date_input(
+    "Date of Birth",
+    min_value=date(1950, 1, 1),
+    max_value=date.today()
+)
+
+national_id_number = st.text_input("National ID Number")
+gender = st.selectbox("Gender", ["Male", "Female"])
+
+join_date = st.date_input(
+    "Join Date",
+    min_value=date(2000, 1, 1),
+    max_value=date.today()
+)
+
+department = st.text_input("Department")
+position = st.text_input("Position")
+address = st.text_area("Address")
+bank_account_number = st.text_input("Bank Account Number")
+marital_status = st.selectbox("Marital Status", ["Single", "Married"])
+mothers_maiden_name = st.text_input("Mother's Maiden Name")
+
 
             daily_rate_basic = st.number_input("Daily Rate Basic", min_value=0)
             daily_rate_transport = st.number_input("Daily Rate Transportation", min_value=0)
