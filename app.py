@@ -100,18 +100,17 @@ if menu == "Dashboard":
     st.metric("Total Employees", len(df))
 
 # =====================================================
-# EMPLOYEE DIRECTORY (VIEW)
+# EMPLOYEE DIRECTORY
 # =====================================================
 
 elif menu == "Employee Directory":
 
     st.title("👥 Employee Directory")
-
     df = load_sheet(employees_ws)
     st.dataframe(df, use_container_width=True)
 
 # =====================================================
-# ADD NEW EMPLOYEE (SEPARATE PAGE)
+# ADD NEW EMPLOYEE
 # =====================================================
 
 elif menu == "Employee Directory > Add New Employee":
@@ -126,16 +125,13 @@ elif menu == "Employee Directory > Add New Employee":
             employee_id = st.text_input("Employee ID")
             full_name = st.text_input("Full Name")
             place_of_birth = st.text_input("Place of Birth")
-
             date_of_birth = st.date_input(
                 "Date of Birth",
                 min_value=date(1950, 1, 1),
                 max_value=date.today()
             )
-
             national_id_number = st.text_input("National ID Number")
             gender = st.selectbox("Gender", ["Male", "Female"])
-
             join_date = st.date_input(
                 "Join Date",
                 min_value=date(2000, 1, 1),
@@ -149,7 +145,6 @@ elif menu == "Employee Directory > Add New Employee":
             bank_account_number = st.text_input("Bank Account Number")
             marital_status = st.selectbox("Marital Status", ["Single", "Married"])
             mothers_maiden_name = st.text_input("Mother's Maiden Name")
-
             daily_rate_basic = st.number_input("Daily Rate Basic", min_value=0)
             daily_rate_transport = st.number_input("Daily Rate Transportation", min_value=0)
             allowance_monthly = st.number_input("Allowance Monthly (Fixed)", min_value=0)
@@ -187,7 +182,6 @@ elif menu == "Employee Directory > Add New Employee":
 elif menu == "Attendance":
 
     st.title("📅 Attendance")
-
     df = load_sheet(attendance_ws)
     st.dataframe(df, use_container_width=True)
 
@@ -215,29 +209,21 @@ elif menu == "Payroll":
 
     for _, emp in df_emp.iterrows():
 
-        emp_id = emp["employee_id"]
-        name = emp["full_name"]
-        bank_account = emp["bank_account_number"]  # ✅ ADDED
-
-        basic = float(emp["daily_rate_basic"])
-        transport = float(emp["daily_rate_transport"])
-        allowance = float(emp["allowance_monthly"])
-
         present_days = len(
             df_month[
-                (df_month["employee_id"] == emp_id) &
+                (df_month["employee_id"] == emp["employee_id"]) &
                 (df_month["status"] == "Present")
             ]
         )
 
         payroll.append([
-            emp_id,
-            name,
-            bank_account,   # ✅ ADDED
+            emp["employee_id"],
+            emp["full_name"],
+            str(emp["bank_account_number"]),  # FORCE STRING
             present_days,
-            basic,
-            transport,
-            allowance,
+            float(emp["daily_rate_basic"]),
+            float(emp["daily_rate_transport"]),
+            float(emp["allowance_monthly"]),
             0,
             0
         ])
@@ -247,7 +233,7 @@ elif menu == "Payroll":
         columns=[
             "Employee ID",
             "Name",
-            "Bank Account Number",   # ✅ ADDED
+            "Bank Account Number",
             "Present Days",
             "Daily Basic",
             "Daily Transport",
@@ -262,7 +248,7 @@ elif menu == "Payroll":
     if edit_mode:
         edited_df = st.data_editor(payroll_df, use_container_width=True)
     else:
-        edited_df = payroll_df
+        edited_df = payroll_df.copy()
 
     edited_df["Salary From Attendance"] = (
         edited_df["Present Days"] *
@@ -281,24 +267,27 @@ elif menu == "Payroll":
 
     st.metric("Total Payroll Cost", edited_df["Total Salary"].sum())
 
+    # ================= SAFE EXCEL EXPORT =================
+
     output = BytesIO()
-with pd.ExcelWriter(output, engine='openpyxl') as writer:
+    export_df = edited_df.copy()
 
-    # Convert bank account to string to prevent scientific notation
-    edited_df["Bank Account Number"] = edited_df["Bank Account Number"].astype(str)
+    export_df["Bank Account Number"] = export_df["Bank Account Number"].astype(str)
 
-    edited_df.to_excel(writer, index=False)
+    with pd.ExcelWriter(output, engine="openpyxl") as writer:
+        export_df.to_excel(writer, index=False, sheet_name="Payroll")
 
-    workbook = writer.book
-    worksheet = writer.sheets['Sheet1']
+        workbook = writer.book
+        worksheet = writer.sheets["Payroll"]
 
-    # Set Bank Account column format to TEXT
-    for row in range(2, len(edited_df) + 2):
-        worksheet[f"C{row}"].number_format = '@'
+        for cell in worksheet["C"]:
+            cell.number_format = "@"
 
+    output.seek(0)
 
     st.download_button(
         "Download Payroll Excel",
-        output.getvalue(),
-        file_name=f"Payroll_{selected_month}.xlsx"
+        data=output,
+        file_name=f"Payroll_{selected_month}.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
