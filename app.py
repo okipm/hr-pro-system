@@ -200,8 +200,13 @@ elif menu == "Payroll":
         st.warning("No attendance data")
         st.stop()
 
-    month_list = df_att["date"].str[:7].unique()
-    selected_month = st.selectbox("Select Month", month_list)
+month_list = df_att["date"].str[:7].unique()
+
+# Convert to list and sort descending
+month_list = sorted(month_list, reverse=True)
+
+selected_month = st.selectbox("Select Month", month_list)
+
 
     df_month = df_att[df_att["date"].str.startswith(selected_month)]
 
