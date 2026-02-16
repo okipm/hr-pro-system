@@ -200,13 +200,11 @@ elif menu == "Payroll":
         st.warning("No attendance data")
         st.stop()
 
-month_list = df_att["date"].str[:7].unique()
+    # ✅ SORT MONTH NEWEST → OLDEST
+    month_list = df_att["date"].str[:7].unique()
+    month_list = sorted(month_list, reverse=True)
 
-# Convert to list and sort descending
-month_list = sorted(month_list, reverse=True)
-
-selected_month = st.selectbox("Select Month", month_list)
-
+    selected_month = st.selectbox("Select Month", month_list)
 
     df_month = df_att[df_att["date"].str.startswith(selected_month)]
 
@@ -276,15 +274,14 @@ selected_month = st.selectbox("Select Month", month_list)
 
     output = BytesIO()
     export_df = edited_df.copy()
-
     export_df["Bank Account Number"] = export_df["Bank Account Number"].astype(str)
 
     with pd.ExcelWriter(output, engine="openpyxl") as writer:
         export_df.to_excel(writer, index=False, sheet_name="Payroll")
 
-        workbook = writer.book
         worksheet = writer.sheets["Payroll"]
 
+        # Force Bank Account column to TEXT
         for cell in worksheet["C"]:
             cell.number_format = "@"
 
