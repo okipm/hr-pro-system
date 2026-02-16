@@ -177,8 +177,9 @@ if menu == "Attendance":
     df = load_sheet(attendance_ws)
     st.dataframe(df, use_container_width=True)
 
+
 # =============================
-# PAYROLL (WITH HIDE / SHOW EDIT)
+# PAYROLL (ENTERPRISE VERSION)
 # =============================
 
 if menu == "Payroll":
@@ -188,6 +189,9 @@ if menu == "Payroll":
     df_emp = load_sheet(employees_ws)
     df_att = load_sheet(attendance_ws)
 
+    payroll_log_ws = client.open_by_key(sheet_id).worksheet("payroll_log")
+    df_log = load_sheet(payroll_log_ws)
+
     if df_att.empty:
         st.warning("No attendance data")
         st.stop()
@@ -195,7 +199,30 @@ if menu == "Payroll":
     month_list = df_att["date"].str[:7].unique()
     selected_month = st.selectbox("Select Month", month_list)
 
+    # Check if month already finalized
+    if not df_log.empty and selected_month in df_log["month"].values:
+        st.success("✅ Payroll already finalized for this month")
+        locked = True
+    else:
+        locked = False
+
     df_month = df_att[df_att["date"].str.startswith(selected_month)]
+
+    # Department Filter
+    departments = ["All"] + sorted(df_emp["department"].unique())
+    selected_dept = st.selectbox("Filter by Department", departments)
+
+    if selected_dept != "All":
+        df_emp = df_emp[df_emp["department"] == selected_dept]
+
+    # Search Employee
+    search = st.text_input("Search Employee (Name or ID)")
+
+    if search:
+        df_emp = df_emp[
+            df_emp["full_name"].str.contains(search, case=False) |
+            df_emp["employee_id"].astype(str).str.contains(search)
+        ]
 
     payroll = []
 
@@ -203,6 +230,7 @@ if menu == "Payroll":
 
         emp_id = emp["employee_id"]
         name = emp["full_name"]
+        department = emp["department"]
 
         basic = float(emp["daily_rate_basic"])
         transport = float(emp["daily_rate_transport"])
@@ -218,6 +246,7 @@ if menu == "Payroll":
         payroll.append([
             emp_id,
             name,
+            department,
             present_days,
             basic,
             transport,
@@ -231,6 +260,7 @@ if menu == "Payroll":
         columns=[
             "Employee ID",
             "Name",
+            "Department",
             "Present Days",
             "Daily Basic",
             "Daily Transport",
@@ -240,17 +270,14 @@ if menu == "Payroll":
         ]
     )
 
-    # Toggle Button
-    edit_mode = st.toggle("✏️ Edit Overtime & Bonus")
-
-    if edit_mode:
+    if locked:
+        edited_df = payroll_df.copy()
+    else:
         edited_df = st.data_editor(
             payroll_df,
             use_container_width=True,
             num_rows="fixed"
         )
-    else:
-        edited_df = payroll_df
 
     # Recalculate
     edited_df["Salary From Attendance"] = (
@@ -268,7 +295,33 @@ if menu == "Payroll":
     st.subheader("Payroll Summary")
     st.dataframe(edited_df, use_container_width=True)
 
-    st.metric("Total Payroll Cost", edited_df["Total Salary"].sum())
+    total_cost = edited_df["Total Salary"].sum()
+    st.metric("Total Payroll Cost", total_cost)
+
+    # Finalize Payroll
+    if not locked:
+        if st.button("✅ Finalize Payroll"):
+
+            from datetime import datetime
+
+            for _, row in edited_df.iterrows():
+                payroll_log_ws.append_row([
+                    selected_month,
+                    row["Employee ID"],
+                    row["Name"],
+                    row["Department"],
+                    row["Present Days"],
+                    row["Daily Basic"],
+                    row["Daily Transport"],
+                    row["Allowance"],
+                    row["Overtime"],
+                    row["Bonus"],
+                    row["Total Salary"],
+                    datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                ])
+
+            st.success("Payroll Finalized & Saved!")
+            st.rerun()
 
     # Export Excel
     output = BytesIO()
