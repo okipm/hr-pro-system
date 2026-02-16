@@ -270,14 +270,25 @@ if menu == "Payroll":
         ]
     )
 
-    if locked:
-        edited_df = payroll_df.copy()
-    else:
-        edited_df = st.data_editor(
-            payroll_df,
-            use_container_width=True,
-            num_rows="fixed"
-        )
+# Toggle Edit Mode
+edit_mode = False
+
+if not locked:
+    edit_mode = st.toggle("✏️ Edit Overtime & Bonus")
+
+if locked:
+    st.success("✅ Payroll already finalized for this month")
+    edited_df = payroll_df.copy()
+
+elif edit_mode:
+    edited_df = st.data_editor(
+        payroll_df,
+        use_container_width=True,
+        num_rows="fixed"
+    )
+else:
+    edited_df = payroll_df.copy()
+
 
     # Recalculate
     edited_df["Salary From Attendance"] = (
