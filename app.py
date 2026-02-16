@@ -217,6 +217,7 @@ elif menu == "Payroll":
 
         emp_id = emp["employee_id"]
         name = emp["full_name"]
+        bank_account = emp["bank_account_number"]  # ✅ ADDED
 
         basic = float(emp["daily_rate_basic"])
         transport = float(emp["daily_rate_transport"])
@@ -232,6 +233,7 @@ elif menu == "Payroll":
         payroll.append([
             emp_id,
             name,
+            bank_account,   # ✅ ADDED
             present_days,
             basic,
             transport,
@@ -245,6 +247,7 @@ elif menu == "Payroll":
         columns=[
             "Employee ID",
             "Name",
+            "Bank Account Number",   # ✅ ADDED
             "Present Days",
             "Daily Basic",
             "Daily Transport",
