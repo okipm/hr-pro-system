@@ -282,8 +282,20 @@ elif menu == "Payroll":
     st.metric("Total Payroll Cost", edited_df["Total Salary"].sum())
 
     output = BytesIO()
-    with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        edited_df.to_excel(writer, index=False)
+with pd.ExcelWriter(output, engine='openpyxl') as writer:
+
+    # Convert bank account to string to prevent scientific notation
+    edited_df["Bank Account Number"] = edited_df["Bank Account Number"].astype(str)
+
+    edited_df.to_excel(writer, index=False)
+
+    workbook = writer.book
+    worksheet = writer.sheets['Sheet1']
+
+    # Set Bank Account column format to TEXT
+    for row in range(2, len(edited_df) + 2):
+        worksheet[f"C{row}"].number_format = '@'
+
 
     st.download_button(
         "Download Payroll Excel",
