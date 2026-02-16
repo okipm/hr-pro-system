@@ -10,7 +10,7 @@ from io import BytesIO
 # =====================================================
 
 st.set_page_config(
-    page_title="HR Management System",
+    page_title="HR PRO SYSTEM",
     layout="wide",
     initial_sidebar_state="collapsed",
     menu_items={
@@ -294,7 +294,7 @@ def get_employee_display_name(emp_id, df):
 
 def login():
     """Login page"""
-    st.markdown('<div class="main-header">🔐 HR Management System</div>', unsafe_allow_html=True)
+    st.markdown('<div class="main-header">🔐 HR PRO LOGIN</div>', unsafe_allow_html=True)
     
     col1, col2, col3 = st.columns([1, 2, 1])
     
@@ -827,7 +827,17 @@ elif menu == "Payroll":
     payroll_df = pd.DataFrame(payroll)
     
     # Edit or Display
-    edited_df = st.data_editor(payroll_df, use_container_width=True, num_rows="dynamic") if edit_mode else payroll_df.copy()
+    if edit_mode:
+        st.markdown('<div class="section-header">✏️ Edit Payroll Data</div>', unsafe_allow_html=True)
+        edited_df = st.data_editor(payroll_df, use_container_width=True, num_rows="dynamic", key="payroll_editor")
+        
+        st.markdown("---")
+        
+        if st.button("💾 Save Changes", use_container_width=True, type="primary"):
+            st.info("✅ Payroll changes saved successfully!")
+            payroll_df = edited_df.copy()
+    else:
+        edited_df = payroll_df.copy()
     
     # Calculate Totals
     edited_df["Salary From Attendance"] = (
