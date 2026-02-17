@@ -671,35 +671,50 @@ elif menu == "Add New Employee":
     
     st.markdown("---")
     
-    if st.button("💾 Save New Employee", use_container_width=True, type="primary"):
+        if st.button("💾 Save New Employee", use_container_width=True, type="primary"):
+
         if not employee_id or not full_name or not department or not position:
             st.error("❌ Please fill in all required fields (ID, Name, Department, Position)")
+
         else:
             try:
-                append_row(employees_ws, [
-                    employee_id,
-                    full_name,
-                    place_of_birth,
-                    str(date_of_birth),
-                    national_id_number,
-                    gender,
-                    str(join_date),
-                    department,
-                    position,
-                    address,
-                    bank_account_number,
-                    marital_status,
-                    mothers_maiden_name,
-                    daily_rate_basic,
-                    daily_rate_transport,
-                    allowance_monthly,
-                    "Active"
-                ])
-                st.success("✅ Employee Added Successfully!")
-                st.balloons()
-                st.rerun()
+                # 🔎 Load existing employees
+                df_existing = load_sheet(employees_ws)
+
+                # Convert to string for safe comparison
+                existing_ids = df_existing["employee_id"].astype(str).tolist() if not df_existing.empty else []
+
+                # 🚫 Duplicate check
+                if str(employee_id) in existing_ids:
+                    st.warning(f"⚠️ Employee ID {employee_id} already exists in the system!")
+                
+                else:
+                    append_row(employees_ws, [
+                        str(employee_id),
+                        str(full_name),
+                        str(place_of_birth),
+                        str(date_of_birth),
+                        str(national_id_number),
+                        str(gender),
+                        str(join_date),
+                        str(department),
+                        str(position),
+                        str(address),
+                        str(bank_account_number),
+                        str(marital_status),
+                        str(mothers_maiden_name),
+                        float(daily_rate_basic),
+                        float(daily_rate_transport),
+                        float(allowance_monthly),
+                        "Active"
+                    ])
+
+                    st.success(f"✅ Employee {full_name} successfully added to the system!")
+                    st.balloons()
+
             except Exception as e:
-                st.error(f"Error adding employee: {str(e)}")
+                st.error(f"❌ Error adding employee: {str(e)}")
+
 
 # =====================================================
 # BULK UPLOAD
