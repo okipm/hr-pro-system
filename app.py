@@ -707,7 +707,6 @@ elif menu == "Add New Employee":
                     ])
 
                     st.success(f"✅ Employee {full_name} successfully added!")
-                    st.balloons()
 
             except Exception as e:
                 st.error(f"❌ Error adding employee: {str(e)}")
