@@ -10,7 +10,7 @@ from io import BytesIO
 # =====================================================
 
 st.set_page_config(
-    page_title="HR System",
+    page_title="HR PRO SYSTEM",
     layout="wide",
     initial_sidebar_state="collapsed",
     menu_items={
@@ -294,7 +294,7 @@ def get_employee_display_name(emp_id, df):
 
 def login():
     """Login page"""
-    st.markdown('<div class="main-header">🔐 HR LOGIN</div>', unsafe_allow_html=True)
+    st.markdown('<div class="main-header">🔐 HR PRO LOGIN</div>', unsafe_allow_html=True)
     
     col1, col2, col3 = st.columns([1, 2, 1])
     
@@ -761,17 +761,50 @@ elif menu == "Bulk Upload Employees":
 elif menu == "Attendance":
     st.markdown('<div class="main-header">📅 Attendance</div>', unsafe_allow_html=True)
     
-    df = load_sheet(attendance_ws)
+    df_emp = load_sheet(employees_ws)
+    df_att = load_sheet(attendance_ws)
     
-    if df.empty:
+    if df_emp.empty:
+        st.warning("⚠️ No employees registered in the system. Please add employees first.")
+        st.stop()
+    
+    if df_att.empty:
         st.info("📭 No attendance records found.")
     else:
-        if "date" in df.columns:
-            dates = sorted(df["date"].unique(), reverse=True)
+        if "date" in df_att.columns and "employee_id" in df_att.columns:
+            # Get unique dates from attendance records
+            dates = sorted(df_att["date"].unique(), reverse=True)
             selected_date = st.selectbox("Select Date", dates)
-            df_filtered = df[df["date"] == selected_date]
-            st.markdown(f"**📋 Records for {selected_date}: {len(df_filtered)}**")
-            st.dataframe(df_filtered, use_container_width=True, hide_index=True)
+            
+            # Filter attendance for selected date
+            df_filtered = df_att[df_att["date"] == selected_date].copy()
+            
+            # Create a mapping of employee_id to full_name
+            emp_name_map = df_emp.set_index('employee_id')['full_name'].to_dict()
+            
+            # Add employee name column by merging with employees data
+            df_filtered = df_filtered.merge(
+                df_emp[['employee_id', 'full_name']],
+                on='employee_id',
+                how='inner'
+            )
+            
+            # Reorder columns to match: employee_id, name, date, status
+            if 'full_name' in df_filtered.columns:
+                display_columns = ['employee_id', 'full_name', 'date', 'status']
+                # Filter to only columns that exist
+                display_columns = [col for col in display_columns if col in df_filtered.columns]
+                df_display = df_filtered[display_columns].copy()
+                
+                # Rename for better display
+                df_display.columns = ['Employee ID', 'Name', 'Date', 'Status']
+                
+                st.markdown(f"**📋 Records for {selected_date}: {len(df_display)}**")
+                st.dataframe(df_display, use_container_width=True, hide_index=True)
+            else:
+                st.warning("⚠️ No matching employee records found in attendance.")
+        else:
+            st.warning("⚠️ Attendance data format is incorrect. Missing 'date' or 'employee_id' columns.")
 
 # =====================================================
 # PAYROLL
