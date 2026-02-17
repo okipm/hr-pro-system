@@ -669,25 +669,22 @@ elif menu == "Add New Employee":
         
         bank_account_number = st.text_input("Bank Account Number", placeholder="1234567890", key="bank")
     
-    st.markdown("---")
-    
-        if st.button("💾 Save New Employee", use_container_width=True, type="primary"):
+        st.markdown("---")
+
+    if st.button("💾 Save New Employee", use_container_width=True, type="primary"):
 
         if not employee_id or not full_name or not department or not position:
             st.error("❌ Please fill in all required fields (ID, Name, Department, Position)")
 
         else:
             try:
-                # 🔎 Load existing employees
                 df_existing = load_sheet(employees_ws)
 
-                # Convert to string for safe comparison
                 existing_ids = df_existing["employee_id"].astype(str).tolist() if not df_existing.empty else []
 
-                # 🚫 Duplicate check
                 if str(employee_id) in existing_ids:
                     st.warning(f"⚠️ Employee ID {employee_id} already exists in the system!")
-                
+
                 else:
                     append_row(employees_ws, [
                         str(employee_id),
@@ -709,11 +706,12 @@ elif menu == "Add New Employee":
                         "Active"
                     ])
 
-                    st.success(f"✅ Employee {full_name} successfully added to the system!")
+                    st.success(f"✅ Employee {full_name} successfully added!")
                     st.balloons()
 
             except Exception as e:
                 st.error(f"❌ Error adding employee: {str(e)}")
+
 
 
 # =====================================================
