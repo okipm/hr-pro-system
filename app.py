@@ -10,7 +10,7 @@ from io import BytesIO
 # =====================================================
 
 st.set_page_config(
-    page_title="HR Management System",
+    page_title="HR System",
     layout="wide",
     initial_sidebar_state="collapsed",
     menu_items={
