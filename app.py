@@ -561,7 +561,7 @@ elif menu == "Employee Directory":
                 
                 if update:
                     try:
-                        row_number = df.index[df["employee_id"].astype(str) == str(selected_id)][0] + 2
+                        row_number = int(df.index[df["employee_id"].astype(str) == str(selected_id)][0]) + 2
                         
                         updated_row = [
                             str(selected_id),
@@ -603,7 +603,7 @@ elif menu == "Employee Directory":
             with col1:
                 if st.button("✅ Yes, Delete", use_container_width=True, type="secondary"):
                     try:
-                        row_number = df.index[df["employee_id"].astype(str) == str(selected_id)][0] + 2
+                        row_number = int(df.index[df["employee_id"].astype(str) == str(selected_id)][0]) + 2
                         employees_ws.delete_rows(row_number)
                         st.success("✅ Employee Deleted Successfully!")
                         st.session_state["confirm_delete"] = False
@@ -771,9 +771,9 @@ elif menu == "Bulk Upload Employees":
                     ]
                     
                     if emp_id in existing_ids:
-                        row_number = df_existing.index[
+                        row_number = int(df_existing.index[
                             df_existing["employee_id"].astype(str) == emp_id
-                        ][0] + 2
+                        ][0]) + 2
                         employees_ws.update(f"A{row_number}:Q{row_number}", [row_data])
                         updated_count += 1
                     else:
