@@ -355,7 +355,6 @@ def login():
                     st.session_state["logged_in"] = True
                     st.session_state["role"] = user.iloc[0]["role"]
                     st.session_state["username"] = username
-                    st.session_state["employee_id"] = user.iloc[0].get("employee_id", "")
                     st.rerun()
                 else:
                     st.error("❌ Invalid credentials. Please try again.")
@@ -370,12 +369,12 @@ if not st.session_state["logged_in"]:
     st.stop()
 
 # =====================================================
-# NAVIGATION - ROLE BASED
+# NAVIGATION BUTTONS (DIRECT CLICK)
 # =====================================================
 
 # Initialize current_page session state
 if "current_page" not in st.session_state:
-    st.session_state["current_page"] = "Dashboard" if st.session_state["role"] == "Admin" else "My Attendance"
+    st.session_state["current_page"] = "Dashboard"
 
 # User Info Bar
 st.markdown(f"""
@@ -384,75 +383,42 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# =====================================================
-# ADMIN NAVIGATION
-# =====================================================
+# Navigation Buttons
+st.markdown('<div class="nav-container">', unsafe_allow_html=True)
 
-if st.session_state["role"] == "Admin":
-    # Navigation Buttons for Admin
-    st.markdown('<div class="nav-container">', unsafe_allow_html=True)
-    
-    col1, col2, col3, col4, col5, col6 = st.columns(6)
-    
-    with col1:
-        if st.button("📊 Dashboard", use_container_width=True, key="nav_dashboard"):
-            st.session_state["current_page"] = "Dashboard"
-            st.rerun()
-    
-    with col2:
-        if st.button("👥 Directory", use_container_width=True, key="nav_directory"):
-            st.session_state["current_page"] = "Employee Directory"
-            st.rerun()
-    
-    with col3:
-        if st.button("➕ Add Employee", use_container_width=True, key="nav_add"):
-            st.session_state["current_page"] = "Add New Employee"
-            st.rerun()
-    
-    with col4:
-        if st.button("📂 Bulk Upload", use_container_width=True, key="nav_bulk"):
-            st.session_state["current_page"] = "Bulk Upload Employees"
-            st.rerun()
-    
-    with col5:
-        if st.button("📅 Attendance", use_container_width=True, key="nav_attendance"):
-            st.session_state["current_page"] = "Attendance"
-            st.rerun()
-    
-    with col6:
-        if st.button("💰 Payroll", use_container_width=True, key="nav_payroll"):
-            st.session_state["current_page"] = "Payroll"
-            st.rerun()
-    
-    st.markdown('</div>', unsafe_allow_html=True)
+col1, col2, col3, col4, col5, col6 = st.columns(6)
 
-# =====================================================
-# STAFF NAVIGATION
-# =====================================================
+with col1:
+    if st.button("📊 Dashboard", use_container_width=True, key="nav_dashboard"):
+        st.session_state["current_page"] = "Dashboard"
+        st.rerun()
 
-elif st.session_state["role"] == "Staff":
-    # Navigation Buttons for Staff
-    st.markdown('<div class="nav-container">', unsafe_allow_html=True)
-    
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        if st.button("📅 My Attendance", use_container_width=True, key="nav_my_attendance"):
-            st.session_state["current_page"] = "My Attendance"
-            st.rerun()
-    
-    with col2:
-        if st.button("💰 My Payroll", use_container_width=True, key="nav_my_payroll"):
-            st.session_state["current_page"] = "My Payroll"
-            st.rerun()
-    
-    with col3:
-        if st.button("🚪 Logout", use_container_width=True, type="secondary", key="logout_btn"):
-            st.session_state["logged_in"] = False
-            st.rerun()
-    
-    st.markdown('</div>', unsafe_allow_html=True)
+with col2:
+    if st.button("👥 Directory", use_container_width=True, key="nav_directory"):
+        st.session_state["current_page"] = "Employee Directory"
+        st.rerun()
 
+with col3:
+    if st.button("➕ Add Employee", use_container_width=True, key="nav_add"):
+        st.session_state["current_page"] = "Add New Employee"
+        st.rerun()
+
+with col4:
+    if st.button("📂 Bulk Upload", use_container_width=True, key="nav_bulk"):
+        st.session_state["current_page"] = "Bulk Upload Employees"
+        st.rerun()
+
+with col5:
+    if st.button("📅 Attendance", use_container_width=True, key="nav_attendance"):
+        st.session_state["current_page"] = "Attendance"
+        st.rerun()
+
+with col6:
+    if st.button("💰 Payroll", use_container_width=True, key="nav_payroll"):
+        st.session_state["current_page"] = "Payroll"
+        st.rerun()
+
+st.markdown('</div>', unsafe_allow_html=True)
 st.markdown("---")
 
 # =====================================================
@@ -462,7 +428,7 @@ st.markdown("---")
 menu = st.session_state["current_page"]
 
 # =====================================================
-# ADMIN - DASHBOARD
+# DASHBOARD
 # =====================================================
 
 if menu == "Dashboard":
@@ -494,7 +460,7 @@ if menu == "Dashboard":
             st.metric("🏢 Departments", departments)
 
 # =====================================================
-# ADMIN - EMPLOYEE DIRECTORY
+# EMPLOYEE DIRECTORY
 # =====================================================
 
 elif menu == "Employee Directory":
@@ -651,7 +617,7 @@ elif menu == "Employee Directory":
                     st.rerun()
 
 # =====================================================
-# ADMIN - ADD NEW EMPLOYEE
+# ADD NEW EMPLOYEE
 # =====================================================
 
 elif menu == "Add New Employee":
@@ -736,7 +702,7 @@ elif menu == "Add New Employee":
                 st.error(f"Error adding employee: {str(e)}")
 
 # =====================================================
-# ADMIN - BULK UPLOAD
+# BULK UPLOAD
 # =====================================================
 
 elif menu == "Bulk Upload Employees":
@@ -822,7 +788,7 @@ elif menu == "Bulk Upload Employees":
             st.error(f"Error processing file: {str(e)}")
 
 # =====================================================
-# ADMIN - ATTENDANCE
+# ATTENDANCE
 # =====================================================
 
 elif menu == "Attendance":
@@ -856,6 +822,9 @@ elif menu == "Attendance":
             # Get all registered employees
             all_employees = df_emp[['employee_id', 'full_name']].copy()
             
+            # Find employees with attendance records for this date
+            employees_with_records = df_filtered['employee_id'].unique()
+            
             # Create a complete attendance table with all employees
             complete_attendance = []
             for _, emp in all_employees.iterrows():
@@ -868,7 +837,7 @@ elif menu == "Attendance":
                 if not emp_record.empty:
                     status = emp_record.iloc[0]['status']
                 else:
-                    status = 'Absent'
+                    status = 'Absent'  # If no record found, mark as absent
                 
                 complete_attendance.append({
                     'Employee ID': emp_id,
@@ -914,7 +883,7 @@ elif menu == "Attendance":
             st.warning("⚠️ Attendance data format is incorrect. Missing 'date' or 'employee_id' columns.")
 
 # =====================================================
-# ADMIN - PAYROLL
+# PAYROLL
 # =====================================================
 
 elif menu == "Payroll":
@@ -1040,176 +1009,3 @@ elif menu == "Payroll":
         )
     except Exception as e:
         st.error(f"Error exporting payroll: {str(e)}")
-
-# =====================================================
-# STAFF - MY ATTENDANCE
-# =====================================================
-
-elif menu == "My Attendance":
-    st.markdown('<div class="main-header">📅 My Attendance</div>', unsafe_allow_html=True)
-    
-    df_emp = load_sheet(employees_ws)
-    df_att = load_sheet(attendance_ws)
-    
-    # Get current logged-in employee's ID
-    current_emp_id = st.session_state.get("employee_id", "")
-    
-    # Get employee details
-    emp_details = df_emp[df_emp["employee_id"].astype(str) == str(current_emp_id)]
-    
-    if emp_details.empty:
-        st.warning("⚠️ Employee record not found.")
-        st.stop()
-    
-    emp_name = emp_details.iloc[0]["full_name"]
-    
-    st.markdown(f"**👤 Employee:** {emp_name}")
-    st.markdown(f"**🆔 Employee ID:** {current_emp_id}")
-    
-    st.markdown("---")
-    
-    if df_att.empty:
-        st.info("📭 No attendance records found.")
-    else:
-        # Filter attendance for current employee
-        my_attendance = df_att[df_att["employee_id"] == current_emp_id].copy()
-        
-        if my_attendance.empty:
-            st.info("📭 No attendance records for your account.")
-        else:
-            # Sort by date (latest first)
-            my_attendance = my_attendance.sort_values("date", ascending=False)
-            
-            # Add row number
-            my_attendance_display = my_attendance[["date", "status"]].copy()
-            my_attendance_display.insert(0, 'No.', range(1, len(my_attendance_display) + 1))
-            my_attendance_display.columns = ['No.', 'Date', 'Status']
-            
-            # Calculate stats
-            total_records = len(my_attendance)
-            present_count = len(my_attendance[my_attendance["status"].str.lower() == "present"])
-            absent_count = len(my_attendance[my_attendance["status"].str.lower() == "absent"])
-            
-            # Display summary cards
-            st.markdown(f"""
-            <div class="attendance-summary">
-                <div class="attendance-card present-card">
-                    <div style="font-size: 2rem; margin-bottom: 0.5rem;">✅</div>
-                    <div style="font-size: 0.9rem; opacity: 0.9;">Days Present</div>
-                    <div style="font-size: 2.5rem; margin-top: 0.5rem;">{present_count}</div>
-                </div>
-                <div class="attendance-card absent-card">
-                    <div style="font-size: 2rem; margin-bottom: 0.5rem;">❌</div>
-                    <div style="font-size: 0.9rem; opacity: 0.9;">Days Absent</div>
-                    <div style="font-size: 2.5rem; margin-top: 0.5rem;">{absent_count}</div>
-                </div>
-                <div class="attendance-card total-card">
-                    <div style="font-size: 2rem; margin-bottom: 0.5rem;">📊</div>
-                    <div style="font-size: 0.9rem; opacity: 0.9;">Total Records</div>
-                    <div style="font-size: 2.5rem; margin-top: 0.5rem;">{total_records}</div>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            st.markdown(f"**📋 Your Attendance History:**")
-            st.dataframe(my_attendance_display, use_container_width=True, hide_index=True)
-
-# =====================================================
-# STAFF - MY PAYROLL
-# =====================================================
-
-elif menu == "My Payroll":
-    st.markdown('<div class="main-header">💰 My Payroll</div>', unsafe_allow_html=True)
-    
-    df_emp = load_sheet(employees_ws)
-    df_att = load_sheet(attendance_ws)
-    
-    # Get current logged-in employee's ID
-    current_emp_id = st.session_state.get("employee_id", "")
-    
-    # Get employee details
-    emp_details = df_emp[df_emp["employee_id"].astype(str) == str(current_emp_id)]
-    
-    if emp_details.empty:
-        st.warning("⚠️ Employee record not found.")
-        st.stop()
-    
-    emp_name = emp_details.iloc[0]["full_name"]
-    
-    st.markdown(f"**👤 Employee:** {emp_name}")
-    st.markdown(f"**🆔 Employee ID:** {current_emp_id}")
-    
-    st.markdown("---")
-    
-    if df_att.empty:
-        st.warning("⚠️ No attendance data available.")
-        st.stop()
-    
-    # Get available months
-    month_list = sorted(df_att["date"].str[:7].unique(), reverse=True)
-    
-    if not month_list:
-        st.warning("⚠️ No attendance records found.")
-        st.stop()
-    
-    selected_month = st.selectbox("Select Month", month_list)
-    
-    # Filter attendance for current employee and selected month
-    df_month = df_att[
-        (df_att["date"].str.startswith(selected_month)) &
-        (df_att["employee_id"] == current_emp_id)
-    ]
-    
-    # Calculate payroll
-    present_days = len(df_month[df_month["status"].str.lower() == "present"])
-    
-    emp_rec = emp_details.iloc[0]
-    daily_basic = float(emp_rec.get("daily_rate_basic", 0))
-    daily_transport = float(emp_rec.get("daily_rate_transport", 0))
-    allowance_monthly = float(emp_rec.get("allowance_monthly", 0))
-    
-    salary_from_attendance = present_days * (daily_basic + daily_transport)
-    total_salary = salary_from_attendance + allowance_monthly
-    
-    # Display payroll details
-    st.markdown('<div class="section-header">💼 Payroll Summary</div>', unsafe_allow_html=True)
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.write(f"**Month:** {selected_month}")
-        st.write(f"**Days Present:** {present_days}")
-        st.write(f"**Daily Basic Rate:** {daily_basic:,.2f}")
-        st.write(f"**Daily Transport Rate:** {daily_transport:,.2f}")
-    
-    with col2:
-        st.write(f"**Monthly Allowance:** {allowance_monthly:,.2f}")
-        st.write(f"**Bank Account:** {emp_rec.get('bank_account_number', 'N/A')}")
-        st.write("")
-    
-    st.markdown("---")
-    
-    # Calculate and display salary breakdown
-    st.markdown('<div class="section-header">📊 Salary Breakdown</div>', unsafe_allow_html=True)
-    
-    breakdown_data = {
-        "Component": ["Attendance Salary", "Monthly Allowance", "Total Salary"],
-        "Amount": [f"{salary_from_attendance:,.2f}", f"{allowance_monthly:,.2f}", f"{total_salary:,.2f}"]
-    }
-    
-    breakdown_df = pd.DataFrame(breakdown_data)
-    st.dataframe(breakdown_df, use_container_width=True, hide_index=True)
-    
-    st.markdown("---")
-    
-    # Display metrics
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        st.metric("💵 Attendance Salary", f"{salary_from_attendance:,.2f}")
-    
-    with col2:
-        st.metric("💰 Total Allowance", f"{allowance_monthly:,.2f}")
-    
-    with col3:
-        st.metric("💳 Total Salary", f"{total_salary:,.2f}")
