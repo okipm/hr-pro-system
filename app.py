@@ -812,59 +812,73 @@ elif menu == "Attendance":
             # Filter attendance for selected date
             df_filtered = df_att[df_att["date"] == selected_date].copy()
             
-            # Create a mapping of employee_id to full_name
-            emp_name_map = df_emp.set_index('employee_id')['full_name'].to_dict()
-            
-            # Add employee name column by merging with employees data
+            # Merge with employee data to get employee names
             df_filtered = df_filtered.merge(
                 df_emp[['employee_id', 'full_name']],
                 on='employee_id',
                 how='inner'
             )
             
-            # Reorder columns to match: employee_id, name, date, status
-            if 'full_name' in df_filtered.columns:
-                display_columns = ['employee_id', 'full_name', 'date', 'status']
-                # Filter to only columns that exist
-                display_columns = [col for col in display_columns if col in df_filtered.columns]
-                df_display = df_filtered[display_columns].copy()
+            # Get all registered employees
+            all_employees = df_emp[['employee_id', 'full_name']].copy()
+            
+            # Find employees with attendance records for this date
+            employees_with_records = df_filtered['employee_id'].unique()
+            
+            # Create a complete attendance table with all employees
+            complete_attendance = []
+            for _, emp in all_employees.iterrows():
+                emp_id = emp['employee_id']
+                emp_name = emp['full_name']
                 
-                # Rename for better display
-                df_display.columns = ['Employee ID', 'Name', 'Date', 'Status']
+                # Check if employee has a record for this date
+                emp_record = df_filtered[df_filtered['employee_id'] == emp_id]
                 
-                # Add row number at the beginning (1-indexed)
-                df_display.insert(0, 'No.', range(1, len(df_display) + 1))
+                if not emp_record.empty:
+                    status = emp_record.iloc[0]['status']
+                else:
+                    status = 'Absent'  # If no record found, mark as absent
                 
-                # Calculate attendance summary
-                total_records = len(df_display)
-                present_count = len(df_display[df_display['Status'].str.lower() == 'present'])
-                absent_count = len(df_display[df_display['Status'].str.lower() == 'absent'])
-                
-                # Display summary cards
-                st.markdown(f"""
-                <div class="attendance-summary">
-                    <div class="attendance-card present-card">
-                        <div style="font-size: 2rem; margin-bottom: 0.5rem;">✅</div>
-                        <div style="font-size: 0.9rem; opacity: 0.9;">Present</div>
-                        <div style="font-size: 2.5rem; margin-top: 0.5rem;">{present_count}</div>
-                    </div>
-                    <div class="attendance-card absent-card">
-                        <div style="font-size: 2rem; margin-bottom: 0.5rem;">❌</div>
-                        <div style="font-size: 0.9rem; opacity: 0.9;">Absent</div>
-                        <div style="font-size: 2.5rem; margin-top: 0.5rem;">{absent_count}</div>
-                    </div>
-                    <div class="attendance-card total-card">
-                        <div style="font-size: 2rem; margin-bottom: 0.5rem;">👥</div>
-                        <div style="font-size: 0.9rem; opacity: 0.9;">Total</div>
-                        <div style="font-size: 2.5rem; margin-top: 0.5rem;">{total_records}</div>
-                    </div>
+                complete_attendance.append({
+                    'Employee ID': emp_id,
+                    'Name': emp_name,
+                    'Date': selected_date,
+                    'Status': status
+                })
+            
+            df_complete = pd.DataFrame(complete_attendance)
+            
+            # Add row number
+            df_complete.insert(0, 'No.', range(1, len(df_complete) + 1))
+            
+            # Calculate attendance summary
+            total_employees = len(df_complete)
+            present_count = len(df_complete[df_complete['Status'].str.lower() == 'present'])
+            absent_count = len(df_complete[df_complete['Status'].str.lower() == 'absent'])
+            
+            # Display summary cards
+            st.markdown(f"""
+            <div class="attendance-summary">
+                <div class="attendance-card present-card">
+                    <div style="font-size: 2rem; margin-bottom: 0.5rem;">✅</div>
+                    <div style="font-size: 0.9rem; opacity: 0.9;">Present</div>
+                    <div style="font-size: 2.5rem; margin-top: 0.5rem;">{present_count}</div>
                 </div>
-                """, unsafe_allow_html=True)
-                
-                st.markdown(f"**📋 Detailed Records for {selected_date}:**")
-                st.dataframe(df_display, use_container_width=True, hide_index=True)
-            else:
-                st.warning("⚠️ No matching employee records found in attendance.")
+                <div class="attendance-card absent-card">
+                    <div style="font-size: 2rem; margin-bottom: 0.5rem;">❌</div>
+                    <div style="font-size: 0.9rem; opacity: 0.9;">Absent</div>
+                    <div style="font-size: 2.5rem; margin-top: 0.5rem;">{absent_count}</div>
+                </div>
+                <div class="attendance-card total-card">
+                    <div style="font-size: 2rem; margin-bottom: 0.5rem;">👥</div>
+                    <div style="font-size: 0.9rem; opacity: 0.9;">Total</div>
+                    <div style="font-size: 2.5rem; margin-top: 0.5rem;">{total_employees}</div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            st.markdown(f"**📋 Detailed Records for {selected_date}:**")
+            st.dataframe(df_complete, use_container_width=True, hide_index=True)
         else:
             st.warning("⚠️ Attendance data format is incorrect. Missing 'date' or 'employee_id' columns.")
 
