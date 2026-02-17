@@ -188,6 +188,39 @@ st.markdown("""
         text-align: center;
         font-weight: 600;
     }
+
+    /* Attendance Summary Cards */
+    .attendance-summary {
+        display: flex;
+        gap: 1rem;
+        margin: 1.5rem 0;
+        flex-wrap: wrap;
+    }
+
+    .attendance-card {
+        flex: 1;
+        min-width: 150px;
+        padding: 1.5rem;
+        border-radius: 10px;
+        text-align: center;
+        font-weight: 600;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .present-card {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        color: white;
+    }
+
+    .absent-card {
+        background: linear-gradient(135deg, #dc3545 0%, #fd7e14 100%);
+        color: white;
+    }
+
+    .total-card {
+        background: linear-gradient(135deg, #1f77b4 0%, #0056b3 100%);
+        color: white;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -799,7 +832,36 @@ elif menu == "Attendance":
                 # Rename for better display
                 df_display.columns = ['Employee ID', 'Name', 'Date', 'Status']
                 
-                st.markdown(f"**📋 Records for {selected_date}: {len(df_display)}**")
+                # Add row number at the beginning (1-indexed)
+                df_display.insert(0, 'No.', range(1, len(df_display) + 1))
+                
+                # Calculate attendance summary
+                total_records = len(df_display)
+                present_count = len(df_display[df_display['Status'].str.lower() == 'present'])
+                absent_count = len(df_display[df_display['Status'].str.lower() == 'absent'])
+                
+                # Display summary cards
+                st.markdown(f"""
+                <div class="attendance-summary">
+                    <div class="attendance-card present-card">
+                        <div style="font-size: 2rem; margin-bottom: 0.5rem;">✅</div>
+                        <div style="font-size: 0.9rem; opacity: 0.9;">Present</div>
+                        <div style="font-size: 2.5rem; margin-top: 0.5rem;">{present_count}</div>
+                    </div>
+                    <div class="attendance-card absent-card">
+                        <div style="font-size: 2rem; margin-bottom: 0.5rem;">❌</div>
+                        <div style="font-size: 0.9rem; opacity: 0.9;">Absent</div>
+                        <div style="font-size: 2.5rem; margin-top: 0.5rem;">{absent_count}</div>
+                    </div>
+                    <div class="attendance-card total-card">
+                        <div style="font-size: 2rem; margin-bottom: 0.5rem;">👥</div>
+                        <div style="font-size: 0.9rem; opacity: 0.9;">Total</div>
+                        <div style="font-size: 2.5rem; margin-top: 0.5rem;">{total_records}</div>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                st.markdown(f"**📋 Detailed Records for {selected_date}:**")
                 st.dataframe(df_display, use_container_width=True, hide_index=True)
             else:
                 st.warning("⚠️ No matching employee records found in attendance.")
