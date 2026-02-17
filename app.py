@@ -10,7 +10,7 @@ import plotly.express as px
 # =====================================================
 
 st.set_page_config(
-    page_title="HR 3.0 Enterprise",
+    page_title="HR 3.0",
     layout="wide",
     initial_sidebar_state="expanded"
 )
