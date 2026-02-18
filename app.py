@@ -486,18 +486,17 @@ def login():
     """Beautiful Modern Login Page - White Background, Narrow"""
     st.markdown('<div class="login-view">', unsafe_allow_html=True)
     
-    # Create centered container
+    # Create centered container with proper spacing
     col1, col2, col3 = st.columns([1, 0.8, 1])
     
     with col2:
+        # Header Card
         st.markdown("""
-        <div style="height: 100vh; display: flex; align-items: center; justify-content: center; width: 100%;">
-            <div style="width: 100%; background: white; border-radius: 16px; padding: 45px 35px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08); border: 1px solid #f0f0f0; animation: slideUp 0.5s ease-out;">
-                <div style="text-align: center; margin-bottom: 35px;">
-                    <div style="font-size: 48px; margin-bottom: 18px;">🏢</div>
-                    <h1 style="font-size: 28px; font-weight: 700; color: #1a1a1a; margin-bottom: 10px; letter-spacing: -0.5px;">Sign in</h1>
-                    <p style="font-size: 14px; color: #999; line-height: 1.5;">Enter your credentials to access the portal</p>
-                </div>
+        <div class="login-card">
+            <div class="login-header">
+                <div class="login-logo">🏢</div>
+                <h1 class="login-title">Sign in</h1>
+                <p class="login-subtitle">Enter your credentials to access the portal</p>
             </div>
         </div>
         """, unsafe_allow_html=True)
