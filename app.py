@@ -53,20 +53,21 @@ st.markdown("""
         display: flex;
         align-items: center;
         justify-content: center;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: #f5f5f5;
         padding: 20px;
     }
     
     .login-container {
         width: 100%;
-        max-width: 450px;
+        max-width: 380px;
     }
     
     .login-card {
         background: white;
-        border-radius: 20px;
-        padding: 50px 40px;
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+        border-radius: 16px;
+        padding: 45px 35px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+        border: 1px solid #f0f0f0;
         animation: slideUp 0.5s ease-out;
     }
     
@@ -82,39 +83,40 @@ st.markdown("""
     }
     
     .login-header {
-        margin-bottom: 40px;
+        margin-bottom: 35px;
         text-align: center;
     }
     
     .login-logo {
         font-size: 48px;
-        margin-bottom: 20px;
+        margin-bottom: 18px;
+        display: block;
     }
     
     .login-title {
-        font-size: 32px;
+        font-size: 28px;
         font-weight: 700;
         color: #1a1a1a;
-        margin-bottom: 12px;
+        margin-bottom: 10px;
         letter-spacing: -0.5px;
     }
     
     .login-subtitle {
-        font-size: 15px;
-        color: #888;
+        font-size: 14px;
+        color: #999;
         line-height: 1.5;
     }
     
     .form-group {
-        margin-bottom: 24px;
+        margin-bottom: 20px;
     }
     
     .form-label {
         display: block;
-        font-size: 14px;
+        font-size: 13px;
         font-weight: 600;
         color: #333;
-        margin-bottom: 10px;
+        margin-bottom: 8px;
         text-transform: uppercase;
         letter-spacing: 0.5px;
     }
@@ -126,20 +128,20 @@ st.markdown("""
     .stTextInput input,
     .stTextInput > div > div > input {
         width: 100% !important;
-        padding: 14px 16px !important;
-        border: 1.5px solid #e0e0e0 !important;
-        border-radius: 10px !important;
-        font-size: 15px !important;
-        background-color: #f9f9f9 !important;
+        padding: 12px 14px !important;
+        border: 1.5px solid #e8e8e8 !important;
+        border-radius: 8px !important;
+        font-size: 14px !important;
+        background-color: #fafafa !important;
         transition: all 0.3s ease !important;
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto' !important;
     }
     
     .stTextInput input:focus,
     .stTextInput > div > div > input:focus {
-        border-color: #667eea !important;
+        border-color: #1f77b4 !important;
         background-color: white !important;
-        box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1) !important;
+        box-shadow: 0 0 0 3px rgba(31, 119, 180, 0.08) !important;
     }
     
     .stTextInput input::placeholder,
@@ -149,22 +151,22 @@ st.markdown("""
     
     .login-button {
         width: 100%;
-        padding: 14px !important;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+        padding: 12px !important;
+        background: linear-gradient(135deg, #1f77b4 0%, #0056b3 100%) !important;
         color: white !important;
         border: none !important;
-        border-radius: 10px !important;
-        font-size: 16px !important;
+        border-radius: 8px !important;
+        font-size: 15px !important;
         font-weight: 600 !important;
         cursor: pointer !important;
         transition: all 0.3s ease !important;
-        margin-top: 10px !important;
-        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3) !important;
+        margin-top: 8px !important;
+        box-shadow: 0 3px 12px rgba(31, 119, 180, 0.25) !important;
     }
     
     .login-button:hover {
         transform: translateY(-2px) !important;
-        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4) !important;
+        box-shadow: 0 5px 16px rgba(31, 119, 180, 0.35) !important;
     }
     
     .login-button:active {
@@ -175,10 +177,10 @@ st.markdown("""
         background-color: #fff5f5;
         border: 1.5px solid #ff6b6b;
         color: #d32f2f;
-        padding: 14px 16px;
-        border-radius: 10px;
-        margin-bottom: 20px;
-        font-size: 14px;
+        padding: 12px 14px;
+        border-radius: 8px;
+        margin-bottom: 18px;
+        font-size: 13px;
         display: flex;
         align-items: center;
         gap: 10px;
@@ -195,10 +197,10 @@ st.markdown("""
         background-color: #f1f9f6;
         border: 1.5px solid #4caf50;
         color: #2e7d32;
-        padding: 14px 16px;
-        border-radius: 10px;
-        margin-bottom: 20px;
-        font-size: 14px;
+        padding: 12px 14px;
+        border-radius: 8px;
+        margin-bottom: 18px;
+        font-size: 13px;
         display: flex;
         align-items: center;
         gap: 10px;
@@ -481,21 +483,20 @@ def get_employee_display_name(emp_id, df):
 # =====================================================
 
 def login():
-    """Beautiful Modern Login Page"""
+    """Beautiful Modern Login Page - White Background, Narrow"""
     st.markdown('<div class="login-view">', unsafe_allow_html=True)
     
-    col1, col2, col3 = st.columns([0.8, 2, 0.8])
+    # Create centered container
+    col1, col2, col3 = st.columns([1, 0.8, 1])
     
     with col2:
         st.markdown("""
-        <div class="login-wrapper" style="margin-left: -50%; margin-right: -50%; margin-top: -50%; margin-bottom: -50%; padding-top: 50%; padding-bottom: 50%;">
-            <div class="login-container">
-                <div class="login-card">
-                    <div class="login-header">
-                        <div class="login-logo">🏢</div>
-                        <h1 class="login-title">Sign in</h1>
-                        <p class="login-subtitle">Enter your credentials to access the portal</p>
-                    </div>
+        <div style="height: 100vh; display: flex; align-items: center; justify-content: center; width: 100%;">
+            <div style="width: 100%; background: white; border-radius: 16px; padding: 45px 35px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08); border: 1px solid #f0f0f0; animation: slideUp 0.5s ease-out;">
+                <div style="text-align: center; margin-bottom: 35px;">
+                    <div style="font-size: 48px; margin-bottom: 18px;">🏢</div>
+                    <h1 style="font-size: 28px; font-weight: 700; color: #1a1a1a; margin-bottom: 10px; letter-spacing: -0.5px;">Sign in</h1>
+                    <p style="font-size: 14px; color: #999; line-height: 1.5;">Enter your credentials to access the portal</p>
                 </div>
             </div>
         </div>
