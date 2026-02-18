@@ -4,6 +4,7 @@ import gspread
 from google.oauth2.service_account import Credentials
 from datetime import date
 from io import BytesIO
+import time
 
 # =====================================================
 # PAGE CONFIG
@@ -66,6 +67,71 @@ st.markdown("""
         border-radius: 10px;
         border: 1px solid #e0e0e0;
         box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    
+    /* Login Page Styling */
+    .login-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    
+    .login-box {
+        background: white;
+        padding: 3rem;
+        border-radius: 15px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        width: 100%;
+        max-width: 420px;
+    }
+    
+    .login-header {
+        margin-bottom: 2rem;
+    }
+    
+    .login-title {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #1a1a1a;
+        margin: 0;
+        padding: 0;
+    }
+    
+    .login-subtitle {
+        font-size: 1rem;
+        color: #999;
+        margin-top: 0.5rem;
+        margin-bottom: 0;
+    }
+    
+    .login-form {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+    
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .form-label {
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: #333;
+    }
+    
+    .login-error {
+        background-color: #fee;
+        color: #c33;
+        padding: 1rem;
+        border-radius: 8px;
+        border-left: 4px solid #c33;
+        margin-bottom: 1rem;
+        font-size: 0.9rem;
     }
     
     /* Success Message */
@@ -232,22 +298,18 @@ st.markdown("""
 def init_gspread_client():
     """Initialize Google Sheets client with proper error handling"""
     try:
-        # Define required scopes
         scopes = [
             "https://www.googleapis.com/auth/spreadsheets",
             "https://www.googleapis.com/auth/drive"
         ]
         
-        # Get credentials from Streamlit secrets
         credentials_dict = st.secrets["gcp_service_account"]
         
-        # Create credentials object using google.oauth2
         credentials = Credentials.from_service_account_info(
             credentials_dict,
             scopes=scopes
         )
         
-        # Authorize gspread client
         client = gspread.authorize(credentials)
         return client
     
@@ -265,10 +327,8 @@ def get_worksheets():
         client = init_gspread_client()
         sheet_id = st.secrets["google_sheet"]["sheet_id"]
         
-        # Open spreadsheet
         spreadsheet = client.open_by_key(sheet_id)
         
-        # Get worksheets
         employees_ws = spreadsheet.worksheet("employees")
         attendance_ws = spreadsheet.worksheet("attendance")
         users_ws = spreadsheet.worksheet("users")
@@ -288,7 +348,6 @@ def get_worksheets():
         st.error(f"❌ Unexpected Error: {str(e)}")
         st.stop()
 
-# Get worksheet references
 try:
     employees_ws, attendance_ws, users_ws = get_worksheets()
 except:
@@ -326,22 +385,52 @@ def get_employee_display_name(emp_id, df):
 # =====================================================
 
 def login():
-    """Login page"""
-    st.markdown('<div class="main-header">🔐 HR Management System</div>', unsafe_allow_html=True)
+    """Modern Login page"""
+    st.markdown("<br><br>", unsafe_allow_html=True)
     
-    col1, col2, col3 = st.columns([1, 2, 1])
+    col1, col2, col3 = st.columns([1, 1.2, 1])
     
     with col2:
-        st.markdown('<div class="form-container">', unsafe_allow_html=True)
+        st.markdown("""
+        <div class="login-box">
+            <div class="login-header">
+                <h1 class="login-title">Sign in</h1>
+                <p class="login-subtitle">Enter your credentials to access the portal</p>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
         
-        username = st.text_input("👤 Username", placeholder="Enter your username")
-        password = st.text_input("🔑 Password", type="password", placeholder="Enter your password")
+        st.markdown('<div class="login-box" style="padding-top: 0.5rem; padding-bottom: 0.5rem;">', unsafe_allow_html=True)
+        st.markdown('<label class="form-label">Username</label>', unsafe_allow_html=True)
+        username = st.text_input(
+            "Username",
+            placeholder="admin",
+            label_visibility="collapsed",
+            key="login_username"
+        )
+        st.markdown('</div>', unsafe_allow_html=True)
         
-        if st.button("🔓 Login", use_container_width=True, type="primary"):
+        st.markdown('<div class="login-box" style="padding-top: 0; padding-bottom: 0.5rem;">', unsafe_allow_html=True)
+        st.markdown('<label class="form-label">Password</label>', unsafe_allow_html=True)
+        password = st.text_input(
+            "Password",
+            type="password",
+            placeholder="••••••••",
+            label_visibility="collapsed",
+            key="login_password"
+        )
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+        st.markdown('<div class="login-box" style="padding-top: 0;">', unsafe_allow_html=True)
+        
+        if st.button("Sign In", use_container_width=True, type="primary"):
             users = load_sheet(users_ws)
             
             if users.empty:
-                st.error("❌ No users found. Please check the 'users' worksheet in Google Sheets.")
+                st.markdown(
+                    '<div class="login-error">❌ No users found. Please check the users worksheet.</div>',
+                    unsafe_allow_html=True
+                )
             else:
                 users["username"] = users["username"].astype(str).str.strip()
                 users["password"] = users["password"].astype(str).str.strip()
@@ -355,9 +444,15 @@ def login():
                     st.session_state["logged_in"] = True
                     st.session_state["role"] = user.iloc[0]["role"]
                     st.session_state["username"] = username
+                    st.success("✅ Login successful! Redirecting...")
+                    st.balloons()
+                    time.sleep(1)
                     st.rerun()
                 else:
-                    st.error("❌ Invalid credentials. Please try again.")
+                    st.markdown(
+                        '<div class="login-error">❌ Invalid username or password</div>',
+                        unsafe_allow_html=True
+                    )
         
         st.markdown('</div>', unsafe_allow_html=True)
 
@@ -372,18 +467,15 @@ if not st.session_state["logged_in"]:
 # NAVIGATION BUTTONS (DIRECT CLICK)
 # =====================================================
 
-# Initialize current_page session state
 if "current_page" not in st.session_state:
     st.session_state["current_page"] = "Dashboard"
 
-# User Info Bar
 st.markdown(f"""
 <div class="user-info-bar">
 👤 {st.session_state['username']} | Role: {st.session_state['role']}
 </div>
 """, unsafe_allow_html=True)
 
-# Navigation Buttons
 st.markdown('<div class="nav-container">', unsafe_allow_html=True)
 
 col1, col2, col3, col4, col5 = st.columns(5)
@@ -435,7 +527,6 @@ if menu == "Dashboard":
     if df_emp.empty:
         st.warning("⚠️ No employee data. Please add employees to get started.")
     else:
-        # Key Metrics
         col1, col2, col3, col4 = st.columns(4)
         
         with col1:
@@ -447,15 +538,11 @@ if menu == "Dashboard":
             st.metric("✅ Active Employees", active_emp)
         
         with col3:
-            # Count UNIQUE registered employees present today
             today_present = 0
             if not df_att.empty:
-                # Get today's attendance records with "Present" status
                 today_att = df_att[(df_att["date"] == str(date.today())) & 
                                    (df_att["status"].astype(str).str.lower() == "present")]
-                # Get unique employee IDs
                 present_ids = today_att["employee_id"].unique()
-                # Count only those who are registered employees
                 today_present = len([emp_id for emp_id in present_ids 
                                      if emp_id in df_emp["employee_id"].values])
             
@@ -478,7 +565,6 @@ elif menu == "Employee Directory":
         st.info("📭 No employees found. Start by adding new employees.")
         st.stop()
     
-    # Search and Filter Section
     st.markdown('<div class="section-header">🔍 Search & Filter</div>', unsafe_allow_html=True)
     
     col1, col2, col3 = st.columns([2, 2, 1.5])
@@ -493,7 +579,6 @@ elif menu == "Employee Directory":
     with col3:
         filter_status = st.selectbox("Filter by Status", ["All", "Active", "Inactive"])
     
-    # Apply Filters
     filtered_df = df.copy()
     
     if search_term:
@@ -525,7 +610,6 @@ elif menu == "Employee Directory":
         
         selected_emp = df[df["employee_id"].astype(str) == str(selected_id)].iloc[0]
         
-        # Action Buttons
         col1, col2 = st.columns(2)
         
         with col1:
@@ -536,7 +620,6 @@ elif menu == "Employee Directory":
             if st.button("🗑️ Delete Employee", use_container_width=True, type="secondary", key="delete_btn"):
                 st.session_state["confirm_delete"] = True
         
-        # Edit Mode
         if "edit_mode" not in st.session_state:
             st.session_state["edit_mode"] = False
         
@@ -602,7 +685,6 @@ elif menu == "Employee Directory":
                     st.session_state["edit_mode"] = False
                     st.rerun()
         
-        # Delete Confirmation
         if st.session_state.get("confirm_delete", False):
             st.markdown("---")
             st.warning(f"⚠️ Are you sure you want to delete {selected_emp['full_name']}? This action cannot be undone.")
@@ -659,7 +741,7 @@ elif menu == "Add New Employee":
             position = st.text_input("Position", placeholder="Sales Manager", key="position")
         
         with col2:
-            st.write("")  # Spacer
+            st.write("")
             address = st.text_area("Address", placeholder="123 Main St, City, Country", height=100, key="address")
     
     with tab3:
@@ -739,39 +821,32 @@ elif menu == "Attendance":
         st.info("📭 No attendance records found.")
     else:
         if "date" in df_att.columns and "employee_id" in df_att.columns:
-            # Get unique dates from attendance records
             dates = sorted(df_att["date"].unique(), reverse=True)
             selected_date = st.selectbox("Select Date", dates)
             
-            # Filter attendance for selected date
             df_filtered = df_att[df_att["date"] == selected_date].copy()
             
-            # Merge with employee data to get employee names
             df_filtered = df_filtered.merge(
                 df_emp[['employee_id', 'full_name']],
                 on='employee_id',
                 how='inner'
             )
             
-            # Get all registered employees
             all_employees = df_emp[['employee_id', 'full_name']].copy()
             
-            # Find employees with attendance records for this date
             employees_with_records = df_filtered['employee_id'].unique()
             
-            # Create a complete attendance table with all employees
             complete_attendance = []
             for _, emp in all_employees.iterrows():
                 emp_id = emp['employee_id']
                 emp_name = emp['full_name']
                 
-                # Check if employee has a record for this date
                 emp_record = df_filtered[df_filtered['employee_id'] == emp_id]
                 
                 if not emp_record.empty:
                     status = emp_record.iloc[0]['status']
                 else:
-                    status = 'Absent'  # If no record found, mark as absent
+                    status = 'Absent'
                 
                 complete_attendance.append({
                     'Employee ID': emp_id,
@@ -782,15 +857,12 @@ elif menu == "Attendance":
             
             df_complete = pd.DataFrame(complete_attendance)
             
-            # Add row number
             df_complete.insert(0, 'No.', range(1, len(df_complete) + 1))
             
-            # Calculate attendance summary
             total_employees = len(df_complete)
             present_count = len(df_complete[df_complete['Status'].str.lower() == 'present'])
             absent_count = len(df_complete[df_complete['Status'].str.lower() == 'absent'])
             
-            # Display summary cards
             st.markdown(f"""
             <div class="attendance-summary">
                 <div class="attendance-card present-card">
@@ -830,7 +902,6 @@ elif menu == "Payroll":
         st.warning("⚠️ No attendance data available. Please add attendance records first.")
         st.stop()
     
-    # Month Selection and Edit Mode
     col1, col2, col3 = st.columns([2, 2, 1])
     
     with col1:
@@ -838,12 +909,11 @@ elif menu == "Payroll":
         selected_month = st.selectbox("Select Month", month_list)
     
     with col2:
-        st.write("")  # Spacer
+        st.write("")
     
     with col3:
         edit_mode = st.toggle("✏️ Edit Mode")
     
-    # Calculate Payroll
     df_month = df_att[df_att["date"].str.startswith(selected_month)]
     
     payroll = []
@@ -851,7 +921,7 @@ elif menu == "Payroll":
         present_days = len(
             df_month[
                 (df_month["employee_id"] == emp["employee_id"]) &
-                (df_month["status"] == "Present")
+                (df_month["status"].astype(str).str.lower() == "present")
             ]
         )
         
@@ -860,7 +930,6 @@ elif menu == "Payroll":
         daily_meal = float(emp.get("daily_rate_meal", 0))
         allowance_monthly = float(emp.get("allowance_monthly", 0))
         
-        # New calculation formula: (Basic + Transport + Meal) x Present Days
         salary_from_attendance = (daily_basic + daily_transport + daily_meal) * present_days
         
         payroll.append({
@@ -879,7 +948,6 @@ elif menu == "Payroll":
     
     payroll_df = pd.DataFrame(payroll)
     
-    # Reorder columns to place Daily Meal after Daily Transport
     column_order = [
         "Employee ID", "Name", "Bank Account", "Present Days",
         "Daily Basic", "Daily Transport", "Daily Meal", "Monthly Allowance",
@@ -887,7 +955,6 @@ elif menu == "Payroll":
     ]
     payroll_df = payroll_df[column_order]
     
-    # Edit or Display
     if edit_mode:
         st.markdown('<div class="section-header">✏️ Edit Payroll Data</div>', unsafe_allow_html=True)
         edited_df = st.data_editor(payroll_df, use_container_width=True, num_rows="dynamic", key="payroll_editor")
@@ -900,7 +967,6 @@ elif menu == "Payroll":
     else:
         edited_df = payroll_df.copy()
     
-    # Calculate Totals
     edited_df["Total Salary"] = (
         edited_df["Salary from Attendance"] +
         edited_df["Monthly Allowance"] +
@@ -915,7 +981,6 @@ elif menu == "Payroll":
     
     st.markdown("---")
     
-    # Summary Metrics
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
@@ -932,7 +997,6 @@ elif menu == "Payroll":
     
     st.markdown("---")
     
-    # Export Button
     try:
         output = BytesIO()
         export_df = edited_df.copy()
