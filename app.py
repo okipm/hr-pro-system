@@ -447,7 +447,8 @@ if menu == "Dashboard":
             st.metric("✅ Active Employees", active_emp)
         
         with col3:
-            today_present = len(df_att[df_att["date"] == str(date.today())]) if not df_att.empty else 0
+            # Count UNIQUE employees present today (not duplicate records)
+            today_present = len(df_att[df_att["date"] == str(date.today())]["employee_id"].unique()) if not df_att.empty else 0
             st.metric("📍 Present Today", today_present)
         
         with col4:
