@@ -447,15 +447,18 @@ if menu == "Dashboard":
             st.metric("✅ Active Employees", active_emp)
         
         with col3:
-            # Count UNIQUE employees present today with "Present" status
+            # Count UNIQUE registered employees present today
+            today_present = 0
             if not df_att.empty:
-                today_att = df_att[df_att["date"] == str(date.today())]
-                if "status" in today_att.columns:
-                    today_present = len(today_att[today_att["status"].str.lower() == "present"]["employee_id"].unique())
-                else:
-                    today_present = len(today_att["employee_id"].unique())
-            else:
-                today_present = 0
+                # Get today's attendance records with "Present" status
+                today_att = df_att[(df_att["date"] == str(date.today())) & 
+                                   (df_att["status"].astype(str).str.lower() == "present")]
+                # Get unique employee IDs
+                present_ids = today_att["employee_id"].unique()
+                # Count only those who are registered employees
+                today_present = len([emp_id for emp_id in present_ids 
+                                     if emp_id in df_emp["employee_id"].values])
+            
             st.metric("📍 Present Today", today_present)
         
         with col4:
