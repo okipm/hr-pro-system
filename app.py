@@ -953,13 +953,21 @@ elif menu == "Payroll":
             "Daily Basic": daily_basic,
             "Daily Transport": daily_transport,
             "Daily Meal": daily_meal,
-            "Salary from Attendance": salary_from_attendance,
             "Monthly Allowance": allowance_monthly,
+            "Salary from Attendance": salary_from_attendance,
             "Overtime": 0.0,
             "Bonus": 0.0
         })
     
     payroll_df = pd.DataFrame(payroll)
+    
+    # Reorder columns to place Daily Meal after Daily Transport
+    column_order = [
+        "Employee ID", "Name", "Bank Account", "Present Days",
+        "Daily Basic", "Daily Transport", "Daily Meal", "Monthly Allowance",
+        "Salary from Attendance", "Overtime", "Bonus"
+    ]
+    payroll_df = payroll_df[column_order]
     
     # Edit or Display
     if edit_mode:
