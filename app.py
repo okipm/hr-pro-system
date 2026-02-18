@@ -1169,7 +1169,85 @@ elif is_staff:
                 st.write(f"**Status:** {staff_employee['status']}")
         
         st.markdown("---")
+        
+        # Edit Personal Details Button
+        if st.button("✏️ Edit Personal Details", use_container_width=True, key="edit_personal_btn"):
+            st.session_state["edit_personal_mode"] = True
+        
+        # Edit Personal Details Form
+        if st.session_state.get("edit_personal_mode", False):
+            st.markdown("---")
+            st.markdown('<div class="section-header">✏️ Edit Personal Information</div>', unsafe_allow_html=True)
+            
+            with st.form("edit_personal_form"):
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    full_name = st.text_input("Full Name", value=staff_employee["full_name"], key="edit_full_name")
+                    date_of_birth = st.date_input("Date of Birth", value=pd.to_datetime(staff_employee.get('date_of_birth', date.today())).date(), key="edit_dob")
+                    gender = st.selectbox("Gender", ["Male", "Female"], index=0 if staff_employee.get('gender', '').lower() != 'female' else 1, key="edit_gender")
+                
+                with col2:
+                    place_of_birth = st.text_input("Place of Birth", value=staff_employee.get('place_of_birth', ''), key="edit_pob")
+                    national_id = st.text_input("National ID Number", value=staff_employee.get('national_id_number', ''), key="edit_nid")
+                    marital_status = st.selectbox("Marital Status", ["Single", "Married", "Divorced", "Widowed"], 
+                                                  index=["Single", "Married", "Divorced", "Widowed"].index(staff_employee.get('marital_status', 'Single')), 
+                                                  key="edit_marital")
+                
+                address = st.text_area("Address", value=staff_employee.get('address', ''), height=80, key="edit_address")
+                mothers_maiden_name = st.text_input("Mother's Maiden Name", value=staff_employee.get('mothers_maiden_name', ''), key="edit_mmn")
+                
+                col1, col2 = st.columns(2)
+                with col1:
+                    submit = st.form_submit_button("💾 Save Changes", use_container_width=True, type="primary")
+                with col2:
+                    cancel = st.form_submit_button("❌ Cancel", use_container_width=True)
+                
+                if submit:
+                    try:
+                        # Find the row number for this employee
+                        df_all = load_sheet(employees_ws)
+                        row_number = int(df_all.index[df_all["employee_id"].astype(str) == str(staff_id)][0]) + 2
+                        
+                        # Prepare updated row data (all columns)
+                        updated_row = [
+                            str(staff_id),
+                            str(full_name),
+                            str(place_of_birth),
+                            str(date_of_birth),
+                            str(national_id),
+                            str(gender),
+                            str(staff_employee.get('join_date', '')),
+                            str(staff_employee['department']),
+                            str(staff_employee['position']),
+                            str(address),
+                            str(staff_employee.get('bank_account_number', '')),
+                            str(marital_status),
+                            str(mothers_maiden_name),
+                            float(staff_employee.get('daily_rate_basic', 0)),
+                            float(staff_employee.get('daily_rate_transport', 0)),
+                            float(staff_employee.get('daily_rate_meal', 0)),
+                            float(staff_employee.get('allowance_monthly', 0)),
+                            str(staff_employee['status'])
+                        ]
+                        
+                        # Update the row in Google Sheets
+                        employees_ws.update(f"A{row_number}:R{row_number}", [updated_row])
+                        
+                        st.success("✅ Personal details updated successfully!")
+                        st.session_state["edit_personal_mode"] = False
+                        time.sleep(1)
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"❌ Error updating details: {str(e)}")
+                
+                if cancel:
+                    st.session_state["edit_personal_mode"] = False
+                    st.rerun()
+        
+        st.markdown("---")
         st.markdown('<div class="section-header">💼 Compensation Information</div>', unsafe_allow_html=True)
+        st.markdown("*This information cannot be edited by staff*")
         
         col1, col2, col3 = st.columns(3)
         
@@ -1212,7 +1290,7 @@ elif is_staff:
             # Calculate summary for selected month
             total_records = len(monthly_attendance)
             present_count = len(monthly_attendance[monthly_attendance["status"].astype(str).str.lower() == "present"])
-            absent_count = len(monthly_attendance[monthly_attendance["status"].astype(str).str.lower() == "absent"])
+            absent_count = total_records - present_count
             
             st.markdown(f"""
             <div class="attendance-summary">
