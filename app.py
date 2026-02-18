@@ -713,7 +713,7 @@ if is_admin:
         if filter_status != "All":
             filtered_df = filtered_df[filtered_df["status"] == filter_status]
         
-        st.markdown(f"**��� Total Records: {len(filtered_df)}**")
+        st.markdown(f"**📋 Total Records: {len(filtered_df)}**")
         st.dataframe(filtered_df, use_container_width=True, hide_index=True)
         
         st.markdown("---")
@@ -1174,15 +1174,15 @@ elif is_staff:
         col1, col2, col3 = st.columns(3)
         
         with col1:
-            st.metric("Daily Basic Rate", f"${float(staff_employee.get('daily_rate_basic', 0)):,.2f}")
+            st.metric("Daily Basic Rate", f"{float(staff_employee.get('daily_rate_basic', 0)):,.2f}")
         
         with col2:
-            st.metric("Daily Transport Rate", f"${float(staff_employee.get('daily_rate_transport', 0)):,.2f}")
+            st.metric("Daily Transport Rate", f"{float(staff_employee.get('daily_rate_transport', 0)):,.2f}")
         
         with col3:
-            st.metric("Daily Meal Allowance", f"${float(staff_employee.get('daily_rate_meal', 0)):,.2f}")
+            st.metric("Daily Meal Allowance", f"{float(staff_employee.get('daily_rate_meal', 0)):,.2f}")
         
-        st.write(f"**Monthly Allowance:** ${float(staff_employee.get('allowance_monthly', 0)):,.2f}")
+        st.write(f"**Monthly Allowance:** {float(staff_employee.get('allowance_monthly', 0)):,.2f}")
         st.write(f"**Bank Account:** {staff_employee.get('bank_account_number', 'Not provided')}")
     
     # STAFF ATTENDANCE
@@ -1194,9 +1194,25 @@ elif is_staff:
         if staff_attendance.empty:
             st.info("📭 No attendance records found.")
         else:
-            total_records = len(staff_attendance)
-            present_count = len(staff_attendance[staff_attendance["status"].astype(str).str.lower() == "present"])
-            absent_count = len(staff_attendance[staff_attendance["status"].astype(str).str.lower() == "absent"])
+            # Get available months for staff
+            staff_months = sorted(staff_attendance["date"].str[:7].unique(), reverse=True)
+            
+            col1, col2 = st.columns([3, 1])
+            
+            with col1:
+                st.markdown('<div class="section-header">📅 Filter by Month</div>', unsafe_allow_html=True)
+                selected_month = st.selectbox("Select Month", staff_months, key="staff_month_filter")
+            
+            with col2:
+                st.write("")
+            
+            # Filter attendance for selected month
+            monthly_attendance = staff_attendance[staff_attendance["date"].str.startswith(selected_month)]
+            
+            # Calculate summary for selected month
+            total_records = len(monthly_attendance)
+            present_count = len(monthly_attendance[monthly_attendance["status"].astype(str).str.lower() == "present"])
+            absent_count = len(monthly_attendance[monthly_attendance["status"].astype(str).str.lower() == "absent"])
             
             st.markdown(f"""
             <div class="attendance-summary">
@@ -1219,9 +1235,9 @@ elif is_staff:
             """, unsafe_allow_html=True)
             
             st.markdown("---")
-            st.markdown('<div class="section-header">📋 Attendance Records</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="section-header">📋 Attendance Records for {selected_month}</div>', unsafe_allow_html=True)
             
-            display_df = staff_attendance[['date', 'status']].copy()
+            display_df = monthly_attendance[['date', 'status']].copy()
             display_df = display_df.sort_values('date', ascending=False).reset_index(drop=True)
             display_df.insert(0, 'No.', range(1, len(display_df) + 1))
             
@@ -1235,11 +1251,18 @@ elif is_staff:
             st.warning("⚠️ No attendance data available.")
             st.stop()
         
+        # Get available months for staff
+        staff_months = sorted(df_att[df_att["employee_id"].astype(str) == str(staff_id)]["date"].str[:7].unique(), reverse=True)
+        
+        if len(staff_months) == 0:
+            st.warning("⚠️ No payroll data available for you.")
+            st.stop()
+        
         col1, col2 = st.columns([3, 1])
         
         with col1:
-            month_list = sorted(df_att["date"].str[:7].unique(), reverse=True)
-            selected_month = st.selectbox("Select Month", month_list)
+            st.markdown('<div class="section-header">📅 Filter by Month</div>', unsafe_allow_html=True)
+            selected_month = st.selectbox("Select Month", staff_months, key="staff_payroll_month")
         
         with col2:
             st.write("")
@@ -1267,15 +1290,15 @@ elif is_staff:
         
         with col1:
             st.metric("Present Days", present_days)
-            st.metric("Daily Basic Rate", f"${daily_basic:,.2f}")
-            st.metric("Daily Transport Rate", f"${daily_transport:,.2f}")
-            st.metric("Daily Meal Allowance", f"${daily_meal:,.2f}")
+            st.metric("Daily Basic Rate", f"{daily_basic:,.2f}")
+            st.metric("Daily Transport Rate", f"{daily_transport:,.2f}")
+            st.metric("Daily Meal Allowance", f"{daily_meal:,.2f}")
         
         with col2:
-            st.metric("Salary from Attendance", f"${salary_from_attendance:,.2f}")
-            st.metric("Monthly Allowance", f"${allowance_monthly:,.2f}")
-            st.metric("Overtime", "$0.00")
-            st.metric("Bonus", "$0.00")
+            st.metric("Salary from Attendance", f"{salary_from_attendance:,.2f}")
+            st.metric("Monthly Allowance", f"{allowance_monthly:,.2f}")
+            st.metric("Overtime", "0.00")
+            st.metric("Bonus", "0.00")
         
         st.markdown("---")
         st.markdown('<div class="section-header">💰 Total Salary</div>', unsafe_allow_html=True)
@@ -1284,6 +1307,6 @@ elif is_staff:
         <div style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); 
                     color: white; padding: 30px; border-radius: 10px; text-align: center;">
             <div style="font-size: 18px; opacity: 0.9; margin-bottom: 10px;">Total Salary for {selected_month}</div>
-            <div style="font-size: 48px; font-weight: bold;">${total_salary:,.2f}</div>
+            <div style="font-size: 48px; font-weight: bold;">{total_salary:,.2f}</div>
         </div>
         """, unsafe_allow_html=True)
