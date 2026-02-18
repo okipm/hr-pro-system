@@ -471,13 +471,6 @@ def append_row(ws, data):
         st.error(f"Error appending row: {str(e)}")
         raise
 
-def get_employee_display_name(emp_id, df):
-    """Get employee display name from ID"""
-    emp = df[df['employee_id'].astype(str) == str(emp_id)]
-    if not emp.empty:
-        return f"{emp_id} - {emp.iloc[0]['full_name']}"
-    return str(emp_id)
-
 # =====================================================
 # LOGIN SECTION
 # =====================================================
@@ -486,11 +479,9 @@ def login():
     """Beautiful Modern Login Page - White Background, Narrow"""
     st.markdown('<div class="login-view">', unsafe_allow_html=True)
     
-    # Create centered container with proper spacing
     col1, col2, col3 = st.columns([1, 0.8, 1])
     
     with col2:
-        # Header Card
         st.markdown("""
         <div class="login-card">
             <div class="login-header">
@@ -501,18 +492,16 @@ def login():
         </div>
         """, unsafe_allow_html=True)
         
-        # Username
         st.markdown('<div class="form-group">', unsafe_allow_html=True)
-        st.markdown('<label class="form-label">Username</label>', unsafe_allow_html=True)
+        st.markdown('<label class="form-label">Employee ID / Username</label>', unsafe_allow_html=True)
         username = st.text_input(
             "Username",
-            placeholder="admin",
+            placeholder="10002 or admin",
             label_visibility="collapsed",
             key="login_username"
         )
         st.markdown('</div>', unsafe_allow_html=True)
         
-        # Password
         st.markdown('<div class="form-group">', unsafe_allow_html=True)
         st.markdown('<label class="form-label">Password</label>', unsafe_allow_html=True)
         password = st.text_input(
@@ -524,7 +513,6 @@ def login():
         )
         st.markdown('</div>', unsafe_allow_html=True)
         
-        # Login Button
         if st.button("Sign In", use_container_width=True, type="primary", key="login_btn"):
             users = load_sheet(users_ws)
             
@@ -546,6 +534,11 @@ def login():
                     st.session_state["logged_in"] = True
                     st.session_state["role"] = user.iloc[0]["role"]
                     st.session_state["username"] = username
+                    
+                    # For Staff users, store their employee_id
+                    if user.iloc[0]["role"].lower() == "staff":
+                        st.session_state["employee_id"] = str(username)
+                    
                     st.markdown(
                         '<div class="login-success">✅ Login successful! Redirecting...</div>',
                         unsafe_allow_html=True
@@ -554,7 +547,7 @@ def login():
                     st.rerun()
                 else:
                     st.markdown(
-                        '<div class="login-error">❌ Invalid username or password. Please try again.</div>',
+                        '<div class="login-error">❌ Invalid Employee ID/Username or password. Please try again.</div>',
                         unsafe_allow_html=True
                     )
     
@@ -580,34 +573,59 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
+# Determine which pages to show based on role
+is_admin = st.session_state.get("role", "").lower() == "admin"
+is_staff = st.session_state.get("role", "").lower() == "staff"
+
 st.markdown('<div class="nav-container">', unsafe_allow_html=True)
 
-col1, col2, col3, col4, col5 = st.columns(5)
+if is_admin:
+    # Admin sees all pages
+    col1, col2, col3, col4, col5 = st.columns(5)
+    
+    with col1:
+        if st.button("📊 Dashboard", use_container_width=True, key="nav_dashboard"):
+            st.session_state["current_page"] = "Dashboard"
+            st.rerun()
+    
+    with col2:
+        if st.button("👥 Directory", use_container_width=True, key="nav_directory"):
+            st.session_state["current_page"] = "Employee Directory"
+            st.rerun()
+    
+    with col3:
+        if st.button("➕ Add Employee", use_container_width=True, key="nav_add"):
+            st.session_state["current_page"] = "Add New Employee"
+            st.rerun()
+    
+    with col4:
+        if st.button("📅 Attendance", use_container_width=True, key="nav_attendance"):
+            st.session_state["current_page"] = "Attendance"
+            st.rerun()
+    
+    with col5:
+        if st.button("💰 Payroll", use_container_width=True, key="nav_payroll"):
+            st.session_state["current_page"] = "Payroll"
+            st.rerun()
 
-with col1:
-    if st.button("📊 Dashboard", use_container_width=True, key="nav_dashboard"):
-        st.session_state["current_page"] = "Dashboard"
-        st.rerun()
-
-with col2:
-    if st.button("👥 Directory", use_container_width=True, key="nav_directory"):
-        st.session_state["current_page"] = "Employee Directory"
-        st.rerun()
-
-with col3:
-    if st.button("➕ Add Employee", use_container_width=True, key="nav_add"):
-        st.session_state["current_page"] = "Add New Employee"
-        st.rerun()
-
-with col4:
-    if st.button("📅 Attendance", use_container_width=True, key="nav_attendance"):
-        st.session_state["current_page"] = "Attendance"
-        st.rerun()
-
-with col5:
-    if st.button("💰 Payroll", use_container_width=True, key="nav_payroll"):
-        st.session_state["current_page"] = "Payroll"
-        st.rerun()
+elif is_staff:
+    # Staff only sees their own data
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        if st.button("👤 My Profile", use_container_width=True, key="nav_profile"):
+            st.session_state["current_page"] = "Staff Profile"
+            st.rerun()
+    
+    with col2:
+        if st.button("📅 My Attendance", use_container_width=True, key="nav_my_attendance"):
+            st.session_state["current_page"] = "Staff Attendance"
+            st.rerun()
+    
+    with col3:
+        if st.button("💰 My Payroll", use_container_width=True, key="nav_my_payroll"):
+            st.session_state["current_page"] = "Staff Payroll"
+            st.rerun()
 
 st.markdown('</div>', unsafe_allow_html=True)
 st.markdown("---")
@@ -617,510 +635,655 @@ st.markdown("---")
 # =====================================================
 
 menu = st.session_state["current_page"]
+df_emp = load_sheet(employees_ws)
+df_att = load_sheet(attendance_ws)
 
 # =====================================================
-# DASHBOARD
+# ADMIN PAGES
 # =====================================================
 
-if menu == "Dashboard":
-    st.markdown('<div class="main-header">📊 HR Dashboard</div>', unsafe_allow_html=True)
+if is_admin:
+    # DASHBOARD
+    if menu == "Dashboard":
+        st.markdown('<div class="main-header">📊 HR Dashboard</div>', unsafe_allow_html=True)
+        
+        if df_emp.empty:
+            st.warning("⚠️ No employee data. Please add employees to get started.")
+        else:
+            col1, col2, col3, col4 = st.columns(4)
+            
+            with col1:
+                total_emp = len(df_emp)
+                st.metric("👥 Total Employees", total_emp)
+            
+            with col2:
+                active_emp = len(df_emp[df_emp["status"] == "Active"]) if not df_emp.empty else 0
+                st.metric("✅ Active Employees", active_emp)
+            
+            with col3:
+                today_present = 0
+                if not df_att.empty:
+                    today_att = df_att[(df_att["date"] == str(date.today())) & 
+                                       (df_att["status"].astype(str).str.lower() == "present")]
+                    present_ids = today_att["employee_id"].unique()
+                    today_present = len([emp_id for emp_id in present_ids 
+                                         if emp_id in df_emp["employee_id"].values])
+                
+                st.metric("📍 Present Today", today_present)
+            
+            with col4:
+                departments = df_emp["department"].nunique() if not df_emp.empty else 0
+                st.metric("🏢 Departments", departments)
     
-    df_emp = load_sheet(employees_ws)
-    df_att = load_sheet(attendance_ws)
-    
-    if df_emp.empty:
-        st.warning("⚠️ No employee data. Please add employees to get started.")
-    else:
-        col1, col2, col3, col4 = st.columns(4)
+    # EMPLOYEE DIRECTORY
+    elif menu == "Employee Directory":
+        st.markdown('<div class="main-header">👥 Employee Directory</div>', unsafe_allow_html=True)
+        
+        df = load_sheet(employees_ws)
+        
+        if df.empty:
+            st.info("📭 No employees found. Start by adding new employees.")
+            st.stop()
+        
+        st.markdown('<div class="section-header">🔍 Search & Filter</div>', unsafe_allow_html=True)
+        
+        col1, col2, col3 = st.columns([2, 2, 1.5])
         
         with col1:
-            total_emp = len(df_emp)
-            st.metric("👥 Total Employees", total_emp)
+            search_term = st.text_input("Search by Name or ID", placeholder="Enter name or employee ID")
         
         with col2:
-            active_emp = len(df_emp[df_emp["status"] == "Active"]) if not df_emp.empty else 0
-            st.metric("✅ Active Employees", active_emp)
+            departments = ["All"] + sorted(df["department"].unique().tolist())
+            filter_dept = st.selectbox("Filter by Department", departments)
         
         with col3:
-            today_present = 0
-            if not df_att.empty:
-                today_att = df_att[(df_att["date"] == str(date.today())) & 
-                                   (df_att["status"].astype(str).str.lower() == "present")]
-                present_ids = today_att["employee_id"].unique()
-                today_present = len([emp_id for emp_id in present_ids 
-                                     if emp_id in df_emp["employee_id"].values])
+            filter_status = st.selectbox("Filter by Status", ["All", "Active", "Inactive"])
+        
+        filtered_df = df.copy()
+        
+        if search_term:
+            filtered_df = filtered_df[
+                (filtered_df["full_name"].str.contains(search_term, case=False, na=False)) |
+                (filtered_df["employee_id"].astype(str).str.contains(search_term, na=False))
+            ]
+        
+        if filter_dept != "All":
+            filtered_df = filtered_df[filtered_df["department"] == filter_dept]
+        
+        if filter_status != "All":
+            filtered_df = filtered_df[filtered_df["status"] == filter_status]
+        
+        st.markdown(f"**��� Total Records: {len(filtered_df)}**")
+        st.dataframe(filtered_df, use_container_width=True, hide_index=True)
+        
+        st.markdown("---")
+        st.markdown('<div class="section-header">⚙️ Manage Employee</div>', unsafe_allow_html=True)
+        
+        if not filtered_df.empty:
+            employee_options = [
+                f"{row['employee_id']} - {row['full_name']}"
+                for _, row in filtered_df.iterrows()
+            ]
             
-            st.metric("📍 Present Today", today_present)
+            selected_option = st.selectbox("Select Employee", employee_options)
+            selected_id = selected_option.split(" - ")[0]
+            
+            selected_emp = df[df["employee_id"].astype(str) == str(selected_id)].iloc[0]
+            
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                if st.button("✏️ Edit Employee", use_container_width=True, key="edit_btn"):
+                    st.session_state["edit_mode"] = True
+            
+            with col2:
+                if st.button("🗑️ Delete Employee", use_container_width=True, type="secondary", key="delete_btn"):
+                    st.session_state["confirm_delete"] = True
+            
+            if "edit_mode" not in st.session_state:
+                st.session_state["edit_mode"] = False
+            
+            if st.session_state["edit_mode"]:
+                st.markdown("---")
+                st.markdown('<div class="section-header">✏️ Edit Employee Information</div>', unsafe_allow_html=True)
+                
+                with st.form("edit_employee_form"):
+                    col1, col2 = st.columns(2)
+                    
+                    with col1:
+                        full_name = st.text_input("Full Name", value=selected_emp["full_name"])
+                        department = st.text_input("Department", value=selected_emp["department"])
+                        position = st.text_input("Position", value=selected_emp["position"])
+                    
+                    with col2:
+                        bank_account = st.text_input("Bank Account Number", value=str(selected_emp.get("bank_account_number", "")))
+                        daily_rate_basic = st.number_input("Daily Rate Basic", value=float(selected_emp.get("daily_rate_basic", 0)))
+                        daily_rate_transport = st.number_input("Daily Rate Transport", value=float(selected_emp.get("daily_rate_transport", 0)))
+                    
+                    daily_rate_meal = st.number_input("Daily Rate Meal Allowance", value=float(selected_emp.get("daily_rate_meal", 0)))
+                    allowance_monthly = st.number_input("Monthly Allowance", value=float(selected_emp.get("allowance_monthly", 0)))
+                    
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        update = st.form_submit_button("💾 Update", use_container_width=True, type="primary")
+                    with col2:
+                        cancel = st.form_submit_button("❌ Cancel", use_container_width=True)
+                    
+                    if update:
+                        try:
+                            row_number = int(df.index[df["employee_id"].astype(str) == str(selected_id)][0]) + 2
+                            
+                            updated_row = [
+                                str(selected_id),
+                                str(full_name),
+                                str(selected_emp.get("place_of_birth", "")),
+                                str(selected_emp.get("date_of_birth", "")),
+                                str(selected_emp.get("national_id_number", "")),
+                                str(selected_emp.get("gender", "")),
+                                str(selected_emp.get("join_date", "")),
+                                str(department),
+                                str(position),
+                                str(selected_emp.get("address", "")),
+                                str(bank_account),
+                                str(selected_emp.get("marital_status", "")),
+                                str(selected_emp.get("mothers_maiden_name", "")),
+                                float(daily_rate_basic),
+                                float(daily_rate_transport),
+                                float(daily_rate_meal),
+                                float(allowance_monthly),
+                                str(selected_emp["status"])
+                            ]
+                            
+                            employees_ws.update(f"A{row_number}:R{row_number}", [updated_row])
+                            st.success("✅ Employee Updated Successfully!")
+                            st.session_state["edit_mode"] = False
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"Error updating employee: {str(e)}")
+                    
+                    if cancel:
+                        st.session_state["edit_mode"] = False
+                        st.rerun()
+            
+            if st.session_state.get("confirm_delete", False):
+                st.markdown("---")
+                st.warning(f"⚠️ Are you sure you want to delete {selected_emp['full_name']}? This action cannot be undone.")
+                
+                col1, col2 = st.columns(2)
+                with col1:
+                    if st.button("✅ Yes, Delete", use_container_width=True, type="secondary"):
+                        try:
+                            row_number = int(df.index[df["employee_id"].astype(str) == str(selected_id)][0]) + 2
+                            employees_ws.delete_rows(row_number)
+                            st.success("✅ Employee Deleted Successfully!")
+                            st.session_state["confirm_delete"] = False
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"Error deleting employee: {str(e)}")
+                
+                with col2:
+                    if st.button("❌ Cancel", use_container_width=True):
+                        st.session_state["confirm_delete"] = False
+                        st.rerun()
+    
+    # ADD NEW EMPLOYEE
+    elif menu == "Add New Employee":
+        st.markdown('<div class="main-header">➕ Add New Employee</div>', unsafe_allow_html=True)
         
-        with col4:
-            departments = df_emp["department"].nunique() if not df_emp.empty else 0
-            st.metric("🏢 Departments", departments)
-
-# =====================================================
-# EMPLOYEE DIRECTORY
-# =====================================================
-
-elif menu == "Employee Directory":
-    st.markdown('<div class="main-header">👥 Employee Directory</div>', unsafe_allow_html=True)
-    
-    df = load_sheet(employees_ws)
-    
-    if df.empty:
-        st.info("📭 No employees found. Start by adding new employees.")
-        st.stop()
-    
-    st.markdown('<div class="section-header">🔍 Search & Filter</div>', unsafe_allow_html=True)
-    
-    col1, col2, col3 = st.columns([2, 2, 1.5])
-    
-    with col1:
-        search_term = st.text_input("Search by Name or ID", placeholder="Enter name or employee ID")
-    
-    with col2:
-        departments = ["All"] + sorted(df["department"].unique().tolist())
-        filter_dept = st.selectbox("Filter by Department", departments)
-    
-    with col3:
-        filter_status = st.selectbox("Filter by Status", ["All", "Active", "Inactive"])
-    
-    filtered_df = df.copy()
-    
-    if search_term:
-        filtered_df = filtered_df[
-            (filtered_df["full_name"].str.contains(search_term, case=False, na=False)) |
-            (filtered_df["employee_id"].astype(str).str.contains(search_term, na=False))
-        ]
-    
-    if filter_dept != "All":
-        filtered_df = filtered_df[filtered_df["department"] == filter_dept]
-    
-    if filter_status != "All":
-        filtered_df = filtered_df[filtered_df["status"] == filter_status]
-    
-    st.markdown(f"**📋 Total Records: {len(filtered_df)}**")
-    st.dataframe(filtered_df, use_container_width=True, hide_index=True)
-    
-    st.markdown("---")
-    st.markdown('<div class="section-header">⚙️ Manage Employee</div>', unsafe_allow_html=True)
-    
-    if not filtered_df.empty:
-        employee_options = [
-            f"{row['employee_id']} - {row['full_name']}"
-            for _, row in filtered_df.iterrows()
-        ]
+        tab1, tab2, tab3 = st.tabs(["👤 Personal Info", "💼 Job Info", "💰 Compensation"])
         
-        selected_option = st.selectbox("Select Employee", employee_options)
-        selected_id = selected_option.split(" - ")[0]
+        with tab1:
+            st.markdown('<div class="section-header">Personal Information</div>', unsafe_allow_html=True)
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                employee_id = st.text_input("Employee ID", placeholder="EMP001", key="emp_id")
+                full_name = st.text_input("Full Name", placeholder="John Doe", key="full_name")
+                date_of_birth = st.date_input("Date of Birth", min_value=date(1950, 1, 1), max_value=date.today(), key="dob")
+                place_of_birth = st.text_input("Place of Birth", placeholder="New York", key="pob")
+            
+            with col2:
+                national_id_number = st.text_input("National ID Number", placeholder="123456789", key="nid")
+                gender = st.selectbox("Gender", ["Male", "Female"], key="gender")
+                marital_status = st.selectbox("Marital Status", ["Single", "Married", "Divorced", "Widowed"], key="marital")
+                mothers_maiden_name = st.text_input("Mother's Maiden Name", placeholder="Jane Smith", key="mmn")
         
-        selected_emp = df[df["employee_id"].astype(str) == str(selected_id)].iloc[0]
+        with tab2:
+            st.markdown('<div class="section-header">Job Information</div>', unsafe_allow_html=True)
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                join_date = st.date_input("Join Date", key="join_date")
+                department = st.text_input("Department", placeholder="Sales", key="department")
+                position = st.text_input("Position", placeholder="Sales Manager", key="position")
+            
+            with col2:
+                st.write("")
+                address = st.text_area("Address", placeholder="123 Main St, City, Country", height=100, key="address")
         
-        col1, col2 = st.columns(2)
+        with tab3:
+            st.markdown('<div class="section-header">Compensation & Banking</div>', unsafe_allow_html=True)
+            col1, col2, col3 = st.columns(3)
+            
+            with col1:
+                daily_rate_basic = st.number_input("Daily Rate (Basic)", min_value=0.0, step=0.01, key="drb")
+            
+            with col2:
+                daily_rate_transport = st.number_input("Daily Rate (Transport)", min_value=0.0, step=0.01, key="drt")
+            
+            with col3:
+                daily_rate_meal = st.number_input("Daily Rate (Meal Allowance)", min_value=0.0, step=0.01, key="drm")
+            
+            allowance_monthly = st.number_input("Monthly Allowance (Fixed)", min_value=0.0, step=0.01, key="am")
+            bank_account_number = st.text_input("Bank Account Number", placeholder="1234567890", key="bank")
         
-        with col1:
-            if st.button("✏️ Edit Employee", use_container_width=True, key="edit_btn"):
-                st.session_state["edit_mode"] = True
-        
-        with col2:
-            if st.button("🗑️ Delete Employee", use_container_width=True, type="secondary", key="delete_btn"):
-                st.session_state["confirm_delete"] = True
-        
-        if "edit_mode" not in st.session_state:
-            st.session_state["edit_mode"] = False
-        
-        if st.session_state["edit_mode"]:
             st.markdown("---")
-            st.markdown('<div class="section-header">✏️ Edit Employee Information</div>', unsafe_allow_html=True)
-            
-            with st.form("edit_employee_form"):
-                col1, col2 = st.columns(2)
-                
-                with col1:
-                    full_name = st.text_input("Full Name", value=selected_emp["full_name"])
-                    department = st.text_input("Department", value=selected_emp["department"])
-                    position = st.text_input("Position", value=selected_emp["position"])
-                
-                with col2:
-                    bank_account = st.text_input("Bank Account Number", value=str(selected_emp.get("bank_account_number", "")))
-                    daily_rate_basic = st.number_input("Daily Rate Basic", value=float(selected_emp.get("daily_rate_basic", 0)))
-                    daily_rate_transport = st.number_input("Daily Rate Transport", value=float(selected_emp.get("daily_rate_transport", 0)))
-                
-                daily_rate_meal = st.number_input("Daily Rate Meal Allowance", value=float(selected_emp.get("daily_rate_meal", 0)))
-                allowance_monthly = st.number_input("Monthly Allowance", value=float(selected_emp.get("allowance_monthly", 0)))
-                
-                col1, col2 = st.columns(2)
-                with col1:
-                    update = st.form_submit_button("💾 Update", use_container_width=True, type="primary")
-                with col2:
-                    cancel = st.form_submit_button("❌ Cancel", use_container_width=True)
-                
-                if update:
-                    try:
-                        row_number = int(df.index[df["employee_id"].astype(str) == str(selected_id)][0]) + 2
-                        
-                        updated_row = [
-                            str(selected_id),
+
+        if st.button("💾 Save New Employee", use_container_width=True, type="primary"):
+
+            if not employee_id or not full_name or not department or not position:
+                st.error("❌ Please fill in all required fields (ID, Name, Department, Position)")
+
+            else:
+                try:
+                    df_existing = load_sheet(employees_ws)
+
+                    existing_ids = df_existing["employee_id"].astype(str).tolist() if not df_existing.empty else []
+
+                    if str(employee_id) in existing_ids:
+                        st.warning(f"⚠️ Employee ID {employee_id} already exists in the system!")
+
+                    else:
+                        append_row(employees_ws, [
+                            str(employee_id),
                             str(full_name),
-                            str(selected_emp.get("place_of_birth", "")),
-                            str(selected_emp.get("date_of_birth", "")),
-                            str(selected_emp.get("national_id_number", "")),
-                            str(selected_emp.get("gender", "")),
-                            str(selected_emp.get("join_date", "")),
+                            str(place_of_birth),
+                            str(date_of_birth),
+                            str(national_id_number),
+                            str(gender),
+                            str(join_date),
                             str(department),
                             str(position),
-                            str(selected_emp.get("address", "")),
-                            str(bank_account),
-                            str(selected_emp.get("marital_status", "")),
-                            str(selected_emp.get("mothers_maiden_name", "")),
+                            str(address),
+                            str(bank_account_number),
+                            str(marital_status),
+                            str(mothers_maiden_name),
                             float(daily_rate_basic),
                             float(daily_rate_transport),
                             float(daily_rate_meal),
                             float(allowance_monthly),
-                            str(selected_emp["status"])
-                        ]
-                        
-                        employees_ws.update(f"A{row_number}:R{row_number}", [updated_row])
-                        st.success("✅ Employee Updated Successfully!")
-                        st.session_state["edit_mode"] = False
-                        st.rerun()
-                    except Exception as e:
-                        st.error(f"Error updating employee: {str(e)}")
+                            "Active"
+                        ])
+
+                        st.success(f"✅ Employee {full_name} successfully added!")
+
+                except Exception as e:
+                    st.error(f"❌ Error adding employee: {str(e)}")
+    
+    # ATTENDANCE
+    elif menu == "Attendance":
+        st.markdown('<div class="main-header">📅 Attendance</div>', unsafe_allow_html=True)
+        
+        if df_emp.empty:
+            st.warning("⚠️ No employees registered in the system. Please add employees first.")
+            st.stop()
+        
+        if df_att.empty:
+            st.info("📭 No attendance records found.")
+        else:
+            if "date" in df_att.columns and "employee_id" in df_att.columns:
+                dates = sorted(df_att["date"].unique(), reverse=True)
+                selected_date = st.selectbox("Select Date", dates)
                 
-                if cancel:
-                    st.session_state["edit_mode"] = False
-                    st.rerun()
+                df_filtered = df_att[df_att["date"] == selected_date].copy()
+                
+                df_filtered = df_filtered.merge(
+                    df_emp[['employee_id', 'full_name']],
+                    on='employee_id',
+                    how='inner'
+                )
+                
+                all_employees = df_emp[['employee_id', 'full_name']].copy()
+                
+                complete_attendance = []
+                for _, emp in all_employees.iterrows():
+                    emp_id = emp['employee_id']
+                    emp_name = emp['full_name']
+                    
+                    emp_record = df_filtered[df_filtered['employee_id'] == emp_id]
+                    
+                    if not emp_record.empty:
+                        status = emp_record.iloc[0]['status']
+                    else:
+                        status = 'Absent'
+                    
+                    complete_attendance.append({
+                        'Employee ID': emp_id,
+                        'Name': emp_name,
+                        'Date': selected_date,
+                        'Status': status
+                    })
+                
+                df_complete = pd.DataFrame(complete_attendance)
+                
+                df_complete.insert(0, 'No.', range(1, len(df_complete) + 1))
+                
+                total_employees = len(df_complete)
+                present_count = len(df_complete[df_complete['Status'].str.lower() == 'present'])
+                absent_count = len(df_complete[df_complete['Status'].str.lower() == 'absent'])
+                
+                st.markdown(f"""
+                <div class="attendance-summary">
+                    <div class="attendance-card present-card">
+                        <div style="font-size: 2rem; margin-bottom: 0.5rem;">✅</div>
+                        <div style="font-size: 0.9rem; opacity: 0.9;">Present</div>
+                        <div style="font-size: 2.5rem; margin-top: 0.5rem;">{present_count}</div>
+                    </div>
+                    <div class="attendance-card absent-card">
+                        <div style="font-size: 2rem; margin-bottom: 0.5rem;">❌</div>
+                        <div style="font-size: 0.9rem; opacity: 0.9;">Absent</div>
+                        <div style="font-size: 2.5rem; margin-top: 0.5rem;">{absent_count}</div>
+                    </div>
+                    <div class="attendance-card total-card">
+                        <div style="font-size: 2rem; margin-bottom: 0.5rem;">👥</div>
+                        <div style="font-size: 0.9rem; opacity: 0.9;">Total</div>
+                        <div style="font-size: 2.5rem; margin-top: 0.5rem;">{total_employees}</div>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                st.markdown(f"**📋 Detailed Records for {selected_date}:**")
+                st.dataframe(df_complete, use_container_width=True, hide_index=True)
+            else:
+                st.warning("⚠️ Attendance data format is incorrect. Missing 'date' or 'employee_id' columns.")
+    
+    # PAYROLL
+    elif menu == "Payroll":
+        st.markdown('<div class="main-header">💰 Payroll Management</div>', unsafe_allow_html=True)
         
-        if st.session_state.get("confirm_delete", False):
-            st.markdown("---")
-            st.warning(f"⚠️ Are you sure you want to delete {selected_emp['full_name']}? This action cannot be undone.")
-            
-            col1, col2 = st.columns(2)
-            with col1:
-                if st.button("✅ Yes, Delete", use_container_width=True, type="secondary"):
-                    try:
-                        row_number = int(df.index[df["employee_id"].astype(str) == str(selected_id)][0]) + 2
-                        employees_ws.delete_rows(row_number)
-                        st.success("✅ Employee Deleted Successfully!")
-                        st.session_state["confirm_delete"] = False
-                        st.rerun()
-                    except Exception as e:
-                        st.error(f"Error deleting employee: {str(e)}")
-            
-            with col2:
-                if st.button("❌ Cancel", use_container_width=True):
-                    st.session_state["confirm_delete"] = False
-                    st.rerun()
-
-# =====================================================
-# ADD NEW EMPLOYEE
-# =====================================================
-
-elif menu == "Add New Employee":
-    st.markdown('<div class="main-header">➕ Add New Employee</div>', unsafe_allow_html=True)
-    
-    tab1, tab2, tab3 = st.tabs(["👤 Personal Info", "💼 Job Info", "💰 Compensation"])
-    
-    with tab1:
-        st.markdown('<div class="section-header">Personal Information</div>', unsafe_allow_html=True)
-        col1, col2 = st.columns(2)
+        if df_att.empty:
+            st.warning("⚠️ No attendance data available. Please add attendance records first.")
+            st.stop()
+        
+        col1, col2, col3 = st.columns([2, 2, 1])
         
         with col1:
-            employee_id = st.text_input("Employee ID", placeholder="EMP001", key="emp_id")
-            full_name = st.text_input("Full Name", placeholder="John Doe", key="full_name")
-            date_of_birth = st.date_input("Date of Birth", min_value=date(1950, 1, 1), max_value=date.today(), key="dob")
-            place_of_birth = st.text_input("Place of Birth", placeholder="New York", key="pob")
-        
-        with col2:
-            national_id_number = st.text_input("National ID Number", placeholder="123456789", key="nid")
-            gender = st.selectbox("Gender", ["Male", "Female"], key="gender")
-            marital_status = st.selectbox("Marital Status", ["Single", "Married", "Divorced", "Widowed"], key="marital")
-            mothers_maiden_name = st.text_input("Mother's Maiden Name", placeholder="Jane Smith", key="mmn")
-    
-    with tab2:
-        st.markdown('<div class="section-header">Job Information</div>', unsafe_allow_html=True)
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            join_date = st.date_input("Join Date", key="join_date")
-            department = st.text_input("Department", placeholder="Sales", key="department")
-            position = st.text_input("Position", placeholder="Sales Manager", key="position")
+            month_list = sorted(df_att["date"].str[:7].unique(), reverse=True)
+            selected_month = st.selectbox("Select Month", month_list)
         
         with col2:
             st.write("")
-            address = st.text_area("Address", placeholder="123 Main St, City, Country", height=100, key="address")
+        
+        with col3:
+            edit_mode = st.toggle("✏️ Edit Mode")
+        
+        df_month = df_att[df_att["date"].str.startswith(selected_month)]
+        
+        payroll = []
+        for _, emp in df_emp.iterrows():
+            present_days = len(
+                df_month[
+                    (df_month["employee_id"] == emp["employee_id"]) &
+                    (df_month["status"].astype(str).str.lower() == "present")
+                ]
+            )
+            
+            daily_basic = float(emp.get("daily_rate_basic", 0))
+            daily_transport = float(emp.get("daily_rate_transport", 0))
+            daily_meal = float(emp.get("daily_rate_meal", 0))
+            allowance_monthly = float(emp.get("allowance_monthly", 0))
+            
+            salary_from_attendance = (daily_basic + daily_transport + daily_meal) * present_days
+            
+            payroll.append({
+                "Employee ID": emp["employee_id"],
+                "Name": emp["full_name"],
+                "Bank Account": str(emp.get("bank_account_number", "")),
+                "Present Days": present_days,
+                "Daily Basic": daily_basic,
+                "Daily Transport": daily_transport,
+                "Daily Meal": daily_meal,
+                "Monthly Allowance": allowance_monthly,
+                "Salary from Attendance": salary_from_attendance,
+                "Overtime": 0.0,
+                "Bonus": 0.0
+            })
+        
+        payroll_df = pd.DataFrame(payroll)
+        
+        column_order = [
+            "Employee ID", "Name", "Bank Account", "Present Days",
+            "Daily Basic", "Daily Transport", "Daily Meal", "Monthly Allowance",
+            "Salary from Attendance", "Overtime", "Bonus"
+        ]
+        payroll_df = payroll_df[column_order]
+        
+        if edit_mode:
+            st.markdown('<div class="section-header">✏️ Edit Payroll Data</div>', unsafe_allow_html=True)
+            edited_df = st.data_editor(payroll_df, use_container_width=True, num_rows="dynamic", key="payroll_editor")
+            
+            st.markdown("---")
+            
+            if st.button("💾 Save Changes", use_container_width=True, type="primary"):
+                st.info("✅ Payroll changes saved successfully!")
+                payroll_df = edited_df.copy()
+        else:
+            edited_df = payroll_df.copy()
+        
+        edited_df["Total Salary"] = (
+            edited_df["Salary from Attendance"] +
+            edited_df["Monthly Allowance"] +
+            edited_df["Overtime"] +
+            edited_df["Bonus"]
+        )
+        
+        st.markdown("---")
+        st.markdown('<div class="section-header">💼 Payroll Summary</div>', unsafe_allow_html=True)
+        
+        st.dataframe(edited_df, use_container_width=True, hide_index=True)
+        
+        st.markdown("---")
+        
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            st.metric("💰 Total Payroll", f"{edited_df['Total Salary'].sum():,.2f}")
+        
+        with col2:
+            st.metric("📊 Avg Salary", f"{edited_df['Total Salary'].mean():,.2f}")
+        
+        with col3:
+            st.metric("👥 Employee Count", len(edited_df))
+        
+        with col4:
+            st.metric("📅 Month", selected_month)
+        
+        st.markdown("---")
+        
+        try:
+            output = BytesIO()
+            export_df = edited_df.copy()
+            export_df["Bank Account"] = export_df["Bank Account"].astype(str)
+            
+            with pd.ExcelWriter(output, engine="openpyxl") as writer:
+                export_df.to_excel(writer, index=False, sheet_name="Payroll")
+                worksheet = writer.sheets["Payroll"]
+                for cell in worksheet["C"]:
+                    cell.number_format = "@"
+            
+            output.seek(0)
+            
+            st.download_button(
+                "⬇️ Download Payroll Excel",
+                data=output,
+                file_name=f"Payroll_{selected_month}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                use_container_width=True,
+                type="primary"
+            )
+        except Exception as e:
+            st.error(f"Error exporting payroll: {str(e)}")
+
+# =====================================================
+# STAFF PAGES
+# =====================================================
+
+elif is_staff:
+    staff_id = st.session_state.get("employee_id")
+    staff_employee = df_emp[df_emp["employee_id"].astype(str) == str(staff_id)].iloc[0] if not df_emp.empty and staff_id else None
     
-    with tab3:
-        st.markdown('<div class="section-header">Compensation & Banking</div>', unsafe_allow_html=True)
+    if staff_employee is None:
+        st.error("❌ Your employee record not found. Please contact admin.")
+        st.stop()
+    
+    # STAFF PROFILE
+    if menu == "Staff Profile":
+        st.markdown('<div class="main-header">👤 My Profile</div>', unsafe_allow_html=True)
+        
+        col1, col2 = st.columns([1, 2])
+        
+        with col1:
+            st.markdown(f"""
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                        color: white; padding: 30px; border-radius: 10px; text-align: center;">
+                <div style="font-size: 48px; margin-bottom: 10px;">👤</div>
+                <h3 style="margin: 0; font-size: 20px;">{staff_employee["full_name"]}</h3>
+                <p style="margin: 5px 0; opacity: 0.9;">{staff_employee["position"]}</p>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        with col2:
+            st.markdown('<div class="section-header">📋 Personal Information</div>', unsafe_allow_html=True)
+            
+            col_a, col_b = st.columns(2)
+            with col_a:
+                st.write(f"**Employee ID:** {staff_employee['employee_id']}")
+                st.write(f"**Full Name:** {staff_employee['full_name']}")
+                st.write(f"**Date of Birth:** {staff_employee.get('date_of_birth', 'N/A')}")
+                st.write(f"**Gender:** {staff_employee.get('gender', 'N/A')}")
+            
+            with col_b:
+                st.write(f"**Department:** {staff_employee['department']}")
+                st.write(f"**Position:** {staff_employee['position']}")
+                st.write(f"**Join Date:** {staff_employee.get('join_date', 'N/A')}")
+                st.write(f"**Status:** {staff_employee['status']}")
+        
+        st.markdown("---")
+        st.markdown('<div class="section-header">💼 Compensation Information</div>', unsafe_allow_html=True)
+        
         col1, col2, col3 = st.columns(3)
         
         with col1:
-            daily_rate_basic = st.number_input("Daily Rate (Basic)", min_value=0.0, step=0.01, key="drb")
+            st.metric("Daily Basic Rate", f"${float(staff_employee.get('daily_rate_basic', 0)):,.2f}")
         
         with col2:
-            daily_rate_transport = st.number_input("Daily Rate (Transport)", min_value=0.0, step=0.01, key="drt")
+            st.metric("Daily Transport Rate", f"${float(staff_employee.get('daily_rate_transport', 0)):,.2f}")
         
         with col3:
-            daily_rate_meal = st.number_input("Daily Rate (Meal Allowance)", min_value=0.0, step=0.01, key="drm")
+            st.metric("Daily Meal Allowance", f"${float(staff_employee.get('daily_rate_meal', 0)):,.2f}")
         
-        allowance_monthly = st.number_input("Monthly Allowance (Fixed)", min_value=0.0, step=0.01, key="am")
-        bank_account_number = st.text_input("Bank Account Number", placeholder="1234567890", key="bank")
+        st.write(f"**Monthly Allowance:** ${float(staff_employee.get('allowance_monthly', 0)):,.2f}")
+        st.write(f"**Bank Account:** {staff_employee.get('bank_account_number', 'Not provided')}")
     
-        st.markdown("---")
-
-    if st.button("💾 Save New Employee", use_container_width=True, type="primary"):
-
-        if not employee_id or not full_name or not department or not position:
-            st.error("❌ Please fill in all required fields (ID, Name, Department, Position)")
-
+    # STAFF ATTENDANCE
+    elif menu == "Staff Attendance":
+        st.markdown('<div class="main-header">📅 My Attendance</div>', unsafe_allow_html=True)
+        
+        staff_attendance = df_att[df_att["employee_id"].astype(str) == str(staff_id)]
+        
+        if staff_attendance.empty:
+            st.info("📭 No attendance records found.")
         else:
-            try:
-                df_existing = load_sheet(employees_ws)
-
-                existing_ids = df_existing["employee_id"].astype(str).tolist() if not df_existing.empty else []
-
-                if str(employee_id) in existing_ids:
-                    st.warning(f"⚠️ Employee ID {employee_id} already exists in the system!")
-
-                else:
-                    append_row(employees_ws, [
-                        str(employee_id),
-                        str(full_name),
-                        str(place_of_birth),
-                        str(date_of_birth),
-                        str(national_id_number),
-                        str(gender),
-                        str(join_date),
-                        str(department),
-                        str(position),
-                        str(address),
-                        str(bank_account_number),
-                        str(marital_status),
-                        str(mothers_maiden_name),
-                        float(daily_rate_basic),
-                        float(daily_rate_transport),
-                        float(daily_rate_meal),
-                        float(allowance_monthly),
-                        "Active"
-                    ])
-
-                    st.success(f"✅ Employee {full_name} successfully added!")
-
-            except Exception as e:
-                st.error(f"❌ Error adding employee: {str(e)}")
-
-# =====================================================
-# ATTENDANCE
-# =====================================================
-
-elif menu == "Attendance":
-    st.markdown('<div class="main-header">📅 Attendance</div>', unsafe_allow_html=True)
-    
-    df_emp = load_sheet(employees_ws)
-    df_att = load_sheet(attendance_ws)
-    
-    if df_emp.empty:
-        st.warning("⚠️ No employees registered in the system. Please add employees first.")
-        st.stop()
-    
-    if df_att.empty:
-        st.info("📭 No attendance records found.")
-    else:
-        if "date" in df_att.columns and "employee_id" in df_att.columns:
-            dates = sorted(df_att["date"].unique(), reverse=True)
-            selected_date = st.selectbox("Select Date", dates)
-            
-            df_filtered = df_att[df_att["date"] == selected_date].copy()
-            
-            df_filtered = df_filtered.merge(
-                df_emp[['employee_id', 'full_name']],
-                on='employee_id',
-                how='inner'
-            )
-            
-            all_employees = df_emp[['employee_id', 'full_name']].copy()
-            
-            employees_with_records = df_filtered['employee_id'].unique()
-            
-            complete_attendance = []
-            for _, emp in all_employees.iterrows():
-                emp_id = emp['employee_id']
-                emp_name = emp['full_name']
-                
-                emp_record = df_filtered[df_filtered['employee_id'] == emp_id]
-                
-                if not emp_record.empty:
-                    status = emp_record.iloc[0]['status']
-                else:
-                    status = 'Absent'
-                
-                complete_attendance.append({
-                    'Employee ID': emp_id,
-                    'Name': emp_name,
-                    'Date': selected_date,
-                    'Status': status
-                })
-            
-            df_complete = pd.DataFrame(complete_attendance)
-            
-            df_complete.insert(0, 'No.', range(1, len(df_complete) + 1))
-            
-            total_employees = len(df_complete)
-            present_count = len(df_complete[df_complete['Status'].str.lower() == 'present'])
-            absent_count = len(df_complete[df_complete['Status'].str.lower() == 'absent'])
+            total_records = len(staff_attendance)
+            present_count = len(staff_attendance[staff_attendance["status"].astype(str).str.lower() == "present"])
+            absent_count = len(staff_attendance[staff_attendance["status"].astype(str).str.lower() == "absent"])
             
             st.markdown(f"""
             <div class="attendance-summary">
                 <div class="attendance-card present-card">
                     <div style="font-size: 2rem; margin-bottom: 0.5rem;">✅</div>
-                    <div style="font-size: 0.9rem; opacity: 0.9;">Present</div>
+                    <div style="font-size: 0.9rem; opacity: 0.9;">Present Days</div>
                     <div style="font-size: 2.5rem; margin-top: 0.5rem;">{present_count}</div>
                 </div>
                 <div class="attendance-card absent-card">
                     <div style="font-size: 2rem; margin-bottom: 0.5rem;">❌</div>
-                    <div style="font-size: 0.9rem; opacity: 0.9;">Absent</div>
+                    <div style="font-size: 0.9rem; opacity: 0.9;">Absent Days</div>
                     <div style="font-size: 2.5rem; margin-top: 0.5rem;">{absent_count}</div>
                 </div>
                 <div class="attendance-card total-card">
-                    <div style="font-size: 2rem; margin-bottom: 0.5rem;">👥</div>
-                    <div style="font-size: 0.9rem; opacity: 0.9;">Total</div>
-                    <div style="font-size: 2.5rem; margin-top: 0.5rem;">{total_employees}</div>
+                    <div style="font-size: 2rem; margin-bottom: 0.5rem;">📊</div>
+                    <div style="font-size: 0.9rem; opacity: 0.9;">Total Records</div>
+                    <div style="font-size: 2.5rem; margin-top: 0.5rem;">{total_records}</div>
                 </div>
             </div>
             """, unsafe_allow_html=True)
             
-            st.markdown(f"**📋 Detailed Records for {selected_date}:**")
-            st.dataframe(df_complete, use_container_width=True, hide_index=True)
-        else:
-            st.warning("⚠️ Attendance data format is incorrect. Missing 'date' or 'employee_id' columns.")
-
-# =====================================================
-# PAYROLL
-# =====================================================
-
-elif menu == "Payroll":
-    st.markdown('<div class="main-header">💰 Payroll Management</div>', unsafe_allow_html=True)
+            st.markdown("---")
+            st.markdown('<div class="section-header">📋 Attendance Records</div>', unsafe_allow_html=True)
+            
+            display_df = staff_attendance[['date', 'status']].copy()
+            display_df = display_df.sort_values('date', ascending=False).reset_index(drop=True)
+            display_df.insert(0, 'No.', range(1, len(display_df) + 1))
+            
+            st.dataframe(display_df, use_container_width=True, hide_index=True)
     
-    df_emp = load_sheet(employees_ws)
-    df_att = load_sheet(attendance_ws)
-    
-    if df_att.empty:
-        st.warning("⚠️ No attendance data available. Please add attendance records first.")
-        st.stop()
-    
-    col1, col2, col3 = st.columns([2, 2, 1])
-    
-    with col1:
-        month_list = sorted(df_att["date"].str[:7].unique(), reverse=True)
-        selected_month = st.selectbox("Select Month", month_list)
-    
-    with col2:
-        st.write("")
-    
-    with col3:
-        edit_mode = st.toggle("✏️ Edit Mode")
-    
-    df_month = df_att[df_att["date"].str.startswith(selected_month)]
-    
-    payroll = []
-    for _, emp in df_emp.iterrows():
+    # STAFF PAYROLL
+    elif menu == "Staff Payroll":
+        st.markdown('<div class="main-header">💰 My Payroll</div>', unsafe_allow_html=True)
+        
+        if df_att.empty:
+            st.warning("⚠️ No attendance data available.")
+            st.stop()
+        
+        col1, col2 = st.columns([3, 1])
+        
+        with col1:
+            month_list = sorted(df_att["date"].str[:7].unique(), reverse=True)
+            selected_month = st.selectbox("Select Month", month_list)
+        
+        with col2:
+            st.write("")
+        
+        df_month = df_att[df_att["date"].str.startswith(selected_month)]
+        
         present_days = len(
             df_month[
-                (df_month["employee_id"] == emp["employee_id"]) &
+                (df_month["employee_id"].astype(str) == str(staff_id)) &
                 (df_month["status"].astype(str).str.lower() == "present")
             ]
         )
         
-        daily_basic = float(emp.get("daily_rate_basic", 0))
-        daily_transport = float(emp.get("daily_rate_transport", 0))
-        daily_meal = float(emp.get("daily_rate_meal", 0))
-        allowance_monthly = float(emp.get("allowance_monthly", 0))
+        daily_basic = float(staff_employee.get("daily_rate_basic", 0))
+        daily_transport = float(staff_employee.get("daily_rate_transport", 0))
+        daily_meal = float(staff_employee.get("daily_rate_meal", 0))
+        allowance_monthly = float(staff_employee.get("allowance_monthly", 0))
         
         salary_from_attendance = (daily_basic + daily_transport + daily_meal) * present_days
+        total_salary = salary_from_attendance + allowance_monthly
         
-        payroll.append({
-            "Employee ID": emp["employee_id"],
-            "Name": emp["full_name"],
-            "Bank Account": str(emp.get("bank_account_number", "")),
-            "Present Days": present_days,
-            "Daily Basic": daily_basic,
-            "Daily Transport": daily_transport,
-            "Daily Meal": daily_meal,
-            "Monthly Allowance": allowance_monthly,
-            "Salary from Attendance": salary_from_attendance,
-            "Overtime": 0.0,
-            "Bonus": 0.0
-        })
-    
-    payroll_df = pd.DataFrame(payroll)
-    
-    column_order = [
-        "Employee ID", "Name", "Bank Account", "Present Days",
-        "Daily Basic", "Daily Transport", "Daily Meal", "Monthly Allowance",
-        "Salary from Attendance", "Overtime", "Bonus"
-    ]
-    payroll_df = payroll_df[column_order]
-    
-    if edit_mode:
-        st.markdown('<div class="section-header">✏️ Edit Payroll Data</div>', unsafe_allow_html=True)
-        edited_df = st.data_editor(payroll_df, use_container_width=True, num_rows="dynamic", key="payroll_editor")
+        st.markdown('<div class="section-header">📊 Payroll Summary</div>', unsafe_allow_html=True)
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.metric("Present Days", present_days)
+            st.metric("Daily Basic Rate", f"${daily_basic:,.2f}")
+            st.metric("Daily Transport Rate", f"${daily_transport:,.2f}")
+            st.metric("Daily Meal Allowance", f"${daily_meal:,.2f}")
+        
+        with col2:
+            st.metric("Salary from Attendance", f"${salary_from_attendance:,.2f}")
+            st.metric("Monthly Allowance", f"${allowance_monthly:,.2f}")
+            st.metric("Overtime", "$0.00")
+            st.metric("Bonus", "$0.00")
         
         st.markdown("---")
+        st.markdown('<div class="section-header">💰 Total Salary</div>', unsafe_allow_html=True)
         
-        if st.button("💾 Save Changes", use_container_width=True, type="primary"):
-            st.info("✅ Payroll changes saved successfully!")
-            payroll_df = edited_df.copy()
-    else:
-        edited_df = payroll_df.copy()
-    
-    edited_df["Total Salary"] = (
-        edited_df["Salary from Attendance"] +
-        edited_df["Monthly Allowance"] +
-        edited_df["Overtime"] +
-        edited_df["Bonus"]
-    )
-    
-    st.markdown("---")
-    st.markdown('<div class="section-header">💼 Payroll Summary</div>', unsafe_allow_html=True)
-    
-    st.dataframe(edited_df, use_container_width=True, hide_index=True)
-    
-    st.markdown("---")
-    
-    col1, col2, col3, col4 = st.columns(4)
-    
-    with col1:
-        st.metric("💰 Total Payroll", f"{edited_df['Total Salary'].sum():,.2f}")
-    
-    with col2:
-        st.metric("📊 Avg Salary", f"{edited_df['Total Salary'].mean():,.2f}")
-    
-    with col3:
-        st.metric("👥 Employee Count", len(edited_df))
-    
-    with col4:
-        st.metric("📅 Month", selected_month)
-    
-    st.markdown("---")
-    
-    try:
-        output = BytesIO()
-        export_df = edited_df.copy()
-        export_df["Bank Account"] = export_df["Bank Account"].astype(str)
-        
-        with pd.ExcelWriter(output, engine="openpyxl") as writer:
-            export_df.to_excel(writer, index=False, sheet_name="Payroll")
-            worksheet = writer.sheets["Payroll"]
-            for cell in worksheet["C"]:
-                cell.number_format = "@"
-        
-        output.seek(0)
-        
-        st.download_button(
-            "⬇️ Download Payroll Excel",
-            data=output,
-            file_name=f"Payroll_{selected_month}.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            use_container_width=True,
-            type="primary"
-        )
-    except Exception as e:
-        st.error(f"Error exporting payroll: {str(e)}")
+        st.markdown(f"""
+        <div style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); 
+                    color: white; padding: 30px; border-radius: 10px; text-align: center;">
+            <div style="font-size: 18px; opacity: 0.9; margin-bottom: 10px;">Total Salary for {selected_month}</div>
+            <div style="font-size: 48px; font-weight: bold;">${total_salary:,.2f}</div>
+        </div>
+        """, unsafe_allow_html=True)
