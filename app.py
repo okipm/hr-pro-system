@@ -386,7 +386,7 @@ st.markdown(f"""
 # Navigation Buttons
 st.markdown('<div class="nav-container">', unsafe_allow_html=True)
 
-col1, col2, col3, col4, col5, col6 = st.columns(6)
+col1, col2, col3, col4, col5 = st.columns(5)
 
 with col1:
     if st.button("📊 Dashboard", use_container_width=True, key="nav_dashboard"):
@@ -404,16 +404,11 @@ with col3:
         st.rerun()
 
 with col4:
-    if st.button("📂 Bulk Upload", use_container_width=True, key="nav_bulk"):
-        st.session_state["current_page"] = "Bulk Upload Employees"
-        st.rerun()
-
-with col5:
     if st.button("📅 Attendance", use_container_width=True, key="nav_attendance"):
         st.session_state["current_page"] = "Attendance"
         st.rerun()
 
-with col6:
+with col5:
     if st.button("💰 Payroll", use_container_width=True, key="nav_payroll"):
         st.session_state["current_page"] = "Payroll"
         st.rerun()
@@ -714,94 +709,6 @@ elif menu == "Add New Employee":
 
             except Exception as e:
                 st.error(f"❌ Error adding employee: {str(e)}")
-
-# =====================================================
-# BULK UPLOAD
-# =====================================================
-
-elif menu == "Bulk Upload Employees":
-    st.markdown('<div class="main-header">📂 Bulk Upload Employees</div>', unsafe_allow_html=True)
-    
-    template_columns = [
-        "employee_id", "full_name", "place_of_birth", "date_of_birth",
-        "national_id_number", "gender", "join_date", "department",
-        "position", "address", "bank_account_number", "marital_status",
-        "mothers_maiden_name", "daily_rate_basic", "daily_rate_transport", 
-        "daily_rate_meal", "allowance_monthly"
-    ]
-    
-    template_df = pd.DataFrame(columns=template_columns)
-    buffer = BytesIO()
-    template_df.to_excel(buffer, index=False)
-    buffer.seek(0)
-    
-    st.markdown('<div class="section-header">📥 Download Template</div>', unsafe_allow_html=True)
-    st.download_button(
-        "⬇️ Download Excel Template",
-        buffer,
-        "employee_template.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        use_container_width=True
-    )
-    
-    st.markdown("---")
-    st.markdown('<div class="section-header">📤 Upload File</div>', unsafe_allow_html=True)
-    
-    uploaded_file = st.file_uploader("Choose Excel file", type=["xlsx"])
-    
-    if uploaded_file:
-        try:
-            df_upload = pd.read_excel(uploaded_file)
-            df_existing = load_sheet(employees_ws)
-            
-            st.info(f"📋 File contains {len(df_upload)} records")
-            st.dataframe(df_upload, use_container_width=True)
-            
-            if st.button("✅ Process Upload", use_container_width=True, type="primary"):
-                existing_ids = df_existing["employee_id"].astype(str).tolist()
-                new_rows = []
-                updated_count = 0
-                
-                for _, row in df_upload.iterrows():
-                    emp_id = str(row["employee_id"])
-                    
-                    row_data = [
-                        str(row["employee_id"]),
-                        str(row["full_name"]),
-                        str(row.get("place_of_birth", "")),
-                        str(row.get("date_of_birth", "")),
-                        str(row.get("national_id_number", "")),
-                        str(row.get("gender", "")),
-                        str(row.get("join_date", "")),
-                        str(row["department"]),
-                        str(row["position"]),
-                        str(row.get("address", "")),
-                        str(row.get("bank_account_number", "")),
-                        str(row.get("marital_status", "")),
-                        str(row.get("mothers_maiden_name", "")),
-                        float(row.get("daily_rate_basic", 0)),
-                        float(row.get("daily_rate_transport", 0)),
-                        float(row.get("daily_rate_meal", 0)),
-                        float(row.get("allowance_monthly", 0)),
-                        "Active"
-                    ]
-                    
-                    if emp_id in existing_ids:
-                        row_number = int(df_existing.index[
-                            df_existing["employee_id"].astype(str) == emp_id
-                        ][0]) + 2
-                        employees_ws.update(f"A{row_number}:R{row_number}", [row_data])
-                        updated_count += 1
-                    else:
-                        new_rows.append(row_data)
-                
-                if new_rows:
-                    employees_ws.append_rows(new_rows)
-                
-                st.success(f"✅ Upload Complete!\n\n📊 Added: {len(new_rows)} | Updated: {updated_count}")
-                st.rerun()
-        except Exception as e:
-            st.error(f"Error processing file: {str(e)}")
 
 # =====================================================
 # ATTENDANCE
