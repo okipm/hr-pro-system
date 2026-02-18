@@ -1182,17 +1182,32 @@ elif is_staff:
             with st.form("edit_personal_form"):
                 col1, col2 = st.columns(2)
                 
+                # Set default values safely
+                current_dob = staff_employee.get('date_of_birth', str(date.today()))
+                try:
+                    dob_value = pd.to_datetime(current_dob).date()
+                except:
+                    dob_value = date.today()
+                
+                current_gender = staff_employee.get('gender', 'Male')
+                gender_index = 1 if current_gender.lower() == 'female' else 0
+                
+                current_marital = staff_employee.get('marital_status', 'Single')
+                marital_options = ["Single", "Married", "Divorced", "Widowed"]
+                try:
+                    marital_index = marital_options.index(current_marital)
+                except:
+                    marital_index = 0
+                
                 with col1:
                     full_name = st.text_input("Full Name", value=staff_employee["full_name"], key="edit_full_name")
-                    date_of_birth = st.date_input("Date of Birth", value=pd.to_datetime(staff_employee.get('date_of_birth', date.today())).date(), key="edit_dob")
-                    gender = st.selectbox("Gender", ["Male", "Female"], index=0 if staff_employee.get('gender', '').lower() != 'female' else 1, key="edit_gender")
+                    date_of_birth = st.date_input("Date of Birth", value=dob_value, key="edit_dob")
+                    gender = st.selectbox("Gender", ["Male", "Female"], index=gender_index, key="edit_gender")
                 
                 with col2:
                     place_of_birth = st.text_input("Place of Birth", value=staff_employee.get('place_of_birth', ''), key="edit_pob")
                     national_id = st.text_input("National ID Number", value=staff_employee.get('national_id_number', ''), key="edit_nid")
-                    marital_status = st.selectbox("Marital Status", ["Single", "Married", "Divorced", "Widowed"], 
-                                                  index=["Single", "Married", "Divorced", "Widowed"].index(staff_employee.get('marital_status', 'Single')), 
-                                                  key="edit_marital")
+                    marital_status = st.selectbox("Marital Status", marital_options, index=marital_index, key="edit_marital")
                 
                 address = st.text_area("Address", value=staff_employee.get('address', ''), height=80, key="edit_address")
                 mothers_maiden_name = st.text_input("Mother's Maiden Name", value=staff_employee.get('mothers_maiden_name', ''), key="edit_mmn")
