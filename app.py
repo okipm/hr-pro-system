@@ -551,6 +551,7 @@ elif menu == "Employee Directory":
                     daily_rate_basic = st.number_input("Daily Rate Basic", value=float(selected_emp.get("daily_rate_basic", 0)))
                     daily_rate_transport = st.number_input("Daily Rate Transport", value=float(selected_emp.get("daily_rate_transport", 0)))
                 
+                daily_rate_meal = st.number_input("Daily Rate Meal Allowance", value=float(selected_emp.get("daily_rate_meal", 0)))
                 allowance_monthly = st.number_input("Monthly Allowance", value=float(selected_emp.get("allowance_monthly", 0)))
                 
                 col1, col2 = st.columns(2)
@@ -579,11 +580,12 @@ elif menu == "Employee Directory":
                             str(selected_emp.get("mothers_maiden_name", "")),
                             float(daily_rate_basic),
                             float(daily_rate_transport),
+                            float(daily_rate_meal),
                             float(allowance_monthly),
                             str(selected_emp["status"])
                         ]
                         
-                        employees_ws.update(f"A{row_number}:Q{row_number}", [updated_row])
+                        employees_ws.update(f"A{row_number}:R{row_number}", [updated_row])
                         st.success("✅ Employee Updated Successfully!")
                         st.session_state["edit_mode"] = False
                         st.rerun()
@@ -665,8 +667,9 @@ elif menu == "Add New Employee":
             daily_rate_transport = st.number_input("Daily Rate (Transport)", min_value=0.0, step=0.01, key="drt")
         
         with col3:
-            allowance_monthly = st.number_input("Monthly Allowance (Fixed)", min_value=0.0, step=0.01, key="am")
+            daily_rate_meal = st.number_input("Daily Rate (Meal Allowance)", min_value=0.0, step=0.01, key="drm")
         
+        allowance_monthly = st.number_input("Monthly Allowance (Fixed)", min_value=0.0, step=0.01, key="am")
         bank_account_number = st.text_input("Bank Account Number", placeholder="1234567890", key="bank")
     
         st.markdown("---")
@@ -702,6 +705,7 @@ elif menu == "Add New Employee":
                         str(mothers_maiden_name),
                         float(daily_rate_basic),
                         float(daily_rate_transport),
+                        float(daily_rate_meal),
                         float(allowance_monthly),
                         "Active"
                     ])
@@ -710,8 +714,6 @@ elif menu == "Add New Employee":
 
             except Exception as e:
                 st.error(f"❌ Error adding employee: {str(e)}")
-
-
 
 # =====================================================
 # BULK UPLOAD
@@ -724,7 +726,8 @@ elif menu == "Bulk Upload Employees":
         "employee_id", "full_name", "place_of_birth", "date_of_birth",
         "national_id_number", "gender", "join_date", "department",
         "position", "address", "bank_account_number", "marital_status",
-        "mothers_maiden_name", "daily_rate_basic", "daily_rate_transport", "allowance_monthly"
+        "mothers_maiden_name", "daily_rate_basic", "daily_rate_transport", 
+        "daily_rate_meal", "allowance_monthly"
     ]
     
     template_df = pd.DataFrame(columns=template_columns)
@@ -778,6 +781,7 @@ elif menu == "Bulk Upload Employees":
                         str(row.get("mothers_maiden_name", "")),
                         float(row.get("daily_rate_basic", 0)),
                         float(row.get("daily_rate_transport", 0)),
+                        float(row.get("daily_rate_meal", 0)),
                         float(row.get("allowance_monthly", 0)),
                         "Active"
                     ]
@@ -786,7 +790,7 @@ elif menu == "Bulk Upload Employees":
                         row_number = int(df_existing.index[
                             df_existing["employee_id"].astype(str) == emp_id
                         ][0]) + 2
-                        employees_ws.update(f"A{row_number}:Q{row_number}", [row_data])
+                        employees_ws.update(f"A{row_number}:R{row_number}", [row_data])
                         updated_count += 1
                     else:
                         new_rows.append(row_data)
@@ -933,14 +937,24 @@ elif menu == "Payroll":
             ]
         )
         
+        daily_basic = float(emp.get("daily_rate_basic", 0))
+        daily_transport = float(emp.get("daily_rate_transport", 0))
+        daily_meal = float(emp.get("daily_rate_meal", 0))
+        allowance_monthly = float(emp.get("allowance_monthly", 0))
+        
+        # New calculation formula: (Basic + Transport + Meal) x Present Days
+        salary_from_attendance = (daily_basic + daily_transport + daily_meal) * present_days
+        
         payroll.append({
             "Employee ID": emp["employee_id"],
             "Name": emp["full_name"],
             "Bank Account": str(emp.get("bank_account_number", "")),
             "Present Days": present_days,
-            "Daily Basic": float(emp.get("daily_rate_basic", 0)),
-            "Daily Transport": float(emp.get("daily_rate_transport", 0)),
-            "Allowance": float(emp.get("allowance_monthly", 0)),
+            "Daily Basic": daily_basic,
+            "Daily Transport": daily_transport,
+            "Daily Meal": daily_meal,
+            "Salary from Attendance": salary_from_attendance,
+            "Monthly Allowance": allowance_monthly,
             "Overtime": 0.0,
             "Bonus": 0.0
         })
@@ -961,14 +975,9 @@ elif menu == "Payroll":
         edited_df = payroll_df.copy()
     
     # Calculate Totals
-    edited_df["Salary From Attendance"] = (
-        edited_df["Present Days"] *
-        (edited_df["Daily Basic"] + edited_df["Daily Transport"])
-    )
-    
     edited_df["Total Salary"] = (
-        edited_df["Salary From Attendance"] +
-        edited_df["Allowance"] +
+        edited_df["Salary from Attendance"] +
+        edited_df["Monthly Allowance"] +
         edited_df["Overtime"] +
         edited_df["Bonus"]
     )
