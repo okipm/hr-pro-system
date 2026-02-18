@@ -25,6 +25,16 @@ st.set_page_config(
 
 st.markdown("""
 <style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+    
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+    }
+    
     /* Main Color Theme */
     :root {
         --primary-color: #1f77b4;
@@ -37,7 +47,172 @@ st.markdown("""
         --border-color: #e0e0e0;
     }
     
-    /* Main Header */
+    /* ===== LOGIN PAGE STYLES ===== */
+    .login-wrapper {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 20px;
+    }
+    
+    .login-container {
+        width: 100%;
+        max-width: 450px;
+    }
+    
+    .login-card {
+        background: white;
+        border-radius: 20px;
+        padding: 50px 40px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+        animation: slideUp 0.5s ease-out;
+    }
+    
+    @keyframes slideUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .login-header {
+        margin-bottom: 40px;
+        text-align: center;
+    }
+    
+    .login-logo {
+        font-size: 48px;
+        margin-bottom: 20px;
+    }
+    
+    .login-title {
+        font-size: 32px;
+        font-weight: 700;
+        color: #1a1a1a;
+        margin-bottom: 12px;
+        letter-spacing: -0.5px;
+    }
+    
+    .login-subtitle {
+        font-size: 15px;
+        color: #888;
+        line-height: 1.5;
+    }
+    
+    .form-group {
+        margin-bottom: 24px;
+    }
+    
+    .form-label {
+        display: block;
+        font-size: 14px;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .form-input-wrapper {
+        position: relative;
+    }
+    
+    .stTextInput input,
+    .stTextInput > div > div > input {
+        width: 100% !important;
+        padding: 14px 16px !important;
+        border: 1.5px solid #e0e0e0 !important;
+        border-radius: 10px !important;
+        font-size: 15px !important;
+        background-color: #f9f9f9 !important;
+        transition: all 0.3s ease !important;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto' !important;
+    }
+    
+    .stTextInput input:focus,
+    .stTextInput > div > div > input:focus {
+        border-color: #667eea !important;
+        background-color: white !important;
+        box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1) !important;
+    }
+    
+    .stTextInput input::placeholder,
+    .stTextInput > div > div > input::placeholder {
+        color: #bbb !important;
+    }
+    
+    .login-button {
+        width: 100%;
+        padding: 14px !important;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+        color: white !important;
+        border: none !important;
+        border-radius: 10px !important;
+        font-size: 16px !important;
+        font-weight: 600 !important;
+        cursor: pointer !important;
+        transition: all 0.3s ease !important;
+        margin-top: 10px !important;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3) !important;
+    }
+    
+    .login-button:hover {
+        transform: translateY(-2px) !important;
+        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4) !important;
+    }
+    
+    .login-button:active {
+        transform: translateY(0) !important;
+    }
+    
+    .login-error {
+        background-color: #fff5f5;
+        border: 1.5px solid #ff6b6b;
+        color: #d32f2f;
+        padding: 14px 16px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        animation: shake 0.3s ease-in-out;
+    }
+    
+    @keyframes shake {
+        0%, 100% { transform: translateX(0); }
+        25% { transform: translateX(-5px); }
+        75% { transform: translateX(5px); }
+    }
+    
+    .login-success {
+        background-color: #f1f9f6;
+        border: 1.5px solid #4caf50;
+        color: #2e7d32;
+        padding: 14px 16px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    /* Hide streamlit defaults on login */
+    .login-view .stTabs,
+    .login-view .nav-container,
+    .login-view [data-testid="stSidebar"],
+    .login-view header {
+        display: none !important;
+    }
+    
+    /* ===== MAIN APP STYLES ===== */
     .main-header {
         font-size: 2.5rem;
         font-weight: bold;
@@ -49,7 +224,6 @@ st.markdown("""
         text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
     }
     
-    /* Section Headers */
     .section-header {
         font-size: 1.8rem;
         color: #2c3e50;
@@ -60,7 +234,6 @@ st.markdown("""
         margin-bottom: 1rem;
     }
     
-    /* Form Container */
     .form-container {
         background-color: #f8f9fa;
         padding: 2rem;
@@ -69,72 +242,6 @@ st.markdown("""
         box-shadow: 0 2px 4px rgba(0,0,0,0.05);
     }
     
-    /* Login Page Styling */
-    .login-container {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        min-height: 100vh;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    }
-    
-    .login-box {
-        background: white;
-        padding: 3rem;
-        border-radius: 15px;
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-        width: 100%;
-        max-width: 420px;
-    }
-    
-    .login-header {
-        margin-bottom: 2rem;
-    }
-    
-    .login-title {
-        font-size: 2.5rem;
-        font-weight: 700;
-        color: #1a1a1a;
-        margin: 0;
-        padding: 0;
-    }
-    
-    .login-subtitle {
-        font-size: 1rem;
-        color: #999;
-        margin-top: 0.5rem;
-        margin-bottom: 0;
-    }
-    
-    .login-form {
-        display: flex;
-        flex-direction: column;
-        gap: 1.5rem;
-    }
-    
-    .form-group {
-        display: flex;
-        flex-direction: column;
-        gap: 0.5rem;
-    }
-    
-    .form-label {
-        font-size: 0.95rem;
-        font-weight: 600;
-        color: #333;
-    }
-    
-    .login-error {
-        background-color: #fee;
-        color: #c33;
-        padding: 1rem;
-        border-radius: 8px;
-        border-left: 4px solid #c33;
-        margin-bottom: 1rem;
-        font-size: 0.9rem;
-    }
-    
-    /* Success Message */
     .success-message {
         background-color: #d4edda;
         color: #155724;
@@ -143,7 +250,6 @@ st.markdown("""
         border-left: 4px solid #28a745;
     }
     
-    /* Metric Cards */
     .metric-card {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
@@ -153,14 +259,12 @@ st.markdown("""
         text-align: center;
     }
     
-    /* Dataframe Styling */
     .dataframe-container {
         border-radius: 8px;
         overflow: hidden;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
     
-    /* Sidebar Styling */
     .sidebar-header {
         font-size: 1.2rem;
         font-weight: bold;
@@ -170,7 +274,6 @@ st.markdown("""
         margin-bottom: 1rem;
     }
     
-    /* Navigation Buttons */
     .nav-container {
         display: flex;
         flex-wrap: wrap;
@@ -204,7 +307,6 @@ st.markdown("""
         color: white;
     }
     
-    /* Buttons */
     .stButton>button {
         border-radius: 8px;
         font-weight: 600;
@@ -217,7 +319,6 @@ st.markdown("""
         box-shadow: 0 4px 8px rgba(0,0,0,0.15);
     }
     
-    /* Tab Styling */
     .stTabs [data-baseweb="tab-list"] {
         gap: 1rem;
         border-bottom: 2px solid #e0e0e0;
@@ -227,24 +328,20 @@ st.markdown("""
         border-bottom: 3px solid #1f77b4;
     }
     
-    /* Input Fields */
     .stTextInput, .stNumberInput, .stSelectbox, .stDateInput {
         border-radius: 8px;
     }
     
-    /* Table Styling */
     .stDataFrame {
         border-radius: 8px;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
     
-    /* Info/Warning Boxes */
     .stInfo, .stWarning, .stError, .stSuccess {
         border-radius: 8px;
         border-left: 4px solid;
     }
     
-    /* User Info Bar */
     .user-info-bar {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
@@ -255,7 +352,6 @@ st.markdown("""
         font-weight: 600;
     }
 
-    /* Attendance Summary Cards */
     .attendance-summary {
         display: flex;
         gap: 1rem;
@@ -385,22 +481,28 @@ def get_employee_display_name(emp_id, df):
 # =====================================================
 
 def login():
-    """Modern Login page"""
-    st.markdown("<br><br>", unsafe_allow_html=True)
+    """Beautiful Modern Login Page"""
+    st.markdown('<div class="login-view">', unsafe_allow_html=True)
     
-    col1, col2, col3 = st.columns([1, 1.2, 1])
+    col1, col2, col3 = st.columns([0.8, 2, 0.8])
     
     with col2:
         st.markdown("""
-        <div class="login-box">
-            <div class="login-header">
-                <h1 class="login-title">Sign in</h1>
-                <p class="login-subtitle">Enter your credentials to access the portal</p>
+        <div class="login-wrapper" style="margin-left: -50%; margin-right: -50%; margin-top: -50%; margin-bottom: -50%; padding-top: 50%; padding-bottom: 50%;">
+            <div class="login-container">
+                <div class="login-card">
+                    <div class="login-header">
+                        <div class="login-logo">🏢</div>
+                        <h1 class="login-title">Sign in</h1>
+                        <p class="login-subtitle">Enter your credentials to access the portal</p>
+                    </div>
+                </div>
             </div>
         </div>
         """, unsafe_allow_html=True)
         
-        st.markdown('<div class="login-box" style="padding-top: 0.5rem; padding-bottom: 0.5rem;">', unsafe_allow_html=True)
+        # Username
+        st.markdown('<div class="form-group">', unsafe_allow_html=True)
         st.markdown('<label class="form-label">Username</label>', unsafe_allow_html=True)
         username = st.text_input(
             "Username",
@@ -410,7 +512,8 @@ def login():
         )
         st.markdown('</div>', unsafe_allow_html=True)
         
-        st.markdown('<div class="login-box" style="padding-top: 0; padding-bottom: 0.5rem;">', unsafe_allow_html=True)
+        # Password
+        st.markdown('<div class="form-group">', unsafe_allow_html=True)
         st.markdown('<label class="form-label">Password</label>', unsafe_allow_html=True)
         password = st.text_input(
             "Password",
@@ -421,9 +524,8 @@ def login():
         )
         st.markdown('</div>', unsafe_allow_html=True)
         
-        st.markdown('<div class="login-box" style="padding-top: 0;">', unsafe_allow_html=True)
-        
-        if st.button("Sign In", use_container_width=True, type="primary"):
+        # Login Button
+        if st.button("Sign In", use_container_width=True, type="primary", key="login_btn"):
             users = load_sheet(users_ws)
             
             if users.empty:
@@ -444,17 +546,19 @@ def login():
                     st.session_state["logged_in"] = True
                     st.session_state["role"] = user.iloc[0]["role"]
                     st.session_state["username"] = username
-                    st.success("✅ Login successful! Redirecting...")
-                    st.balloons()
-                    time.sleep(1)
+                    st.markdown(
+                        '<div class="login-success">✅ Login successful! Redirecting...</div>',
+                        unsafe_allow_html=True
+                    )
+                    time.sleep(1.5)
                     st.rerun()
                 else:
                     st.markdown(
-                        '<div class="login-error">❌ Invalid username or password</div>',
+                        '<div class="login-error">❌ Invalid username or password. Please try again.</div>',
                         unsafe_allow_html=True
                     )
-        
-        st.markdown('</div>', unsafe_allow_html=True)
+    
+    st.markdown('</div>', unsafe_allow_html=True)
 
 if "logged_in" not in st.session_state:
     st.session_state["logged_in"] = False
@@ -464,7 +568,7 @@ if not st.session_state["logged_in"]:
     st.stop()
 
 # =====================================================
-# NAVIGATION BUTTONS (DIRECT CLICK)
+# NAVIGATION BUTTONS
 # =====================================================
 
 if "current_page" not in st.session_state:
